@@ -1,0 +1,26 @@
+From 7b27d5261ebdf68b0cdb62864878bc187befc476 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ole=20Andr=C3=A9=20Vadla=20Ravn=C3=A5s?= <oleavr@gmail.com>
+Date: Mon, 12 Sep 2022 09:29:58 +0000
+Subject: [PATCH] ARM: Use /lib/ld-linux-armhf.so.3 for the hard-float ABI
+
+Backport of d3b36017d43af570ca7f79e711749dd4ade76979.
+---
+ sysdeps/arm/shlib-versions | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/sysdeps/arm/shlib-versions b/sysdeps/arm/shlib-versions
+index 491dd0a..8f91702 100644
+--- a/sysdeps/arm/shlib-versions
++++ b/sysdeps/arm/shlib-versions
+@@ -1,4 +1,8 @@
+ arm.*-.*-linux-gnueabi.*	DEFAULT			GLIBC_2.4
+ 
++%ifdef HAVE_ARM_PCS_VFP
++arm.*-.*-linux-gnueabi.*	ld=ld-linux-armhf.so.3
++%else
+ arm.*-.*-linux-gnueabi.*	ld=ld-linux.so.3
++%endif
+ arm.*-.*-linux.*	ld=ld-linux.so.2
+-- 
+2.34.1
+

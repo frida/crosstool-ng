@@ -1,0 +1,68 @@
+From 8ecfceef63e575c5681c7581ac3a59487a2b9765 Mon Sep 17 00:00:00 2001
+From: Florian Weimer <fweimer@redhat.com>
+Date: Tue, 13 Sep 2022 17:00:07 +0000
+Subject: [PATCH 2/4] ld.so: Check for new cache format first and enhance
+ corruption check
+
+Now that ldconfig defaults to the new format (only), check for it
+first.  Also apply the corruption check added in commit 2954daf00bb4d
+("Add more checks for valid ld.so.cache file (bug 18093)") to the
+new-format-only case.
+
+Suggested-by: Josh Triplett <josh@joshtriplett.org>
+---
+ elf/dl-cache.c | 27 +++++++++++++++------------
+ 1 file changed, 15 insertions(+), 12 deletions(-)
+
+diff --git a/elf/dl-cache.c b/elf/dl-cache.c
+index 396a4f2..fcead4c 100644
+--- a/elf/dl-cache.c
++++ b/elf/dl-cache.c
+@@ -197,15 +197,25 @@ _dl_load_cache_lookup (const char *name)
+ 					       PROT_READ);
+ 
+       /* We can handle three different cache file formats here:
++	 - only the new format
+ 	 - the old libc5/glibc2.0/2.1 format
+ 	 - the old format with the new format in it
+-	 - only the new format
+ 	 The following checks if the cache contains any of these formats.  */
+-      if (file != MAP_FAILED && cachesize > sizeof *cache
+-	  && memcmp (file, CACHEMAGIC, sizeof CACHEMAGIC - 1) == 0
++      if (file != MAP_FAILED && cachesize > sizeof *cache_new
++	  && memcmp (file, CACHEMAGIC_VERSION_NEW,
++		     sizeof CACHEMAGIC_VERSION_NEW - 1) == 0
+ 	  /* Check for corruption, avoiding overflow.  */
+-	  && ((cachesize - sizeof *cache) / sizeof (struct file_entry)
+-	      >= ((struct cache_file *) file)->nlibs))
++	  && ((cachesize - sizeof *cache_new) / sizeof (struct file_entry_new)
++	      >= ((struct cache_file_new *) file)->nlibs))
++	{
++	  cache_new = file;
++	  cache = file;
++	}
++      else if (file != MAP_FAILED && cachesize > sizeof *cache
++	       && memcmp (file, CACHEMAGIC, sizeof CACHEMAGIC - 1) == 0
++	       /* Check for corruption, avoiding overflow.  */
++	       && ((cachesize - sizeof *cache) / sizeof (struct file_entry)
++		   >= ((struct cache_file *) file)->nlibs))
+ 	{
+ 	  size_t offset;
+ 	  /* Looks ok.  */
+@@ -221,13 +231,6 @@ _dl_load_cache_lookup (const char *name)
+ 			 sizeof CACHEMAGIC_VERSION_NEW - 1) != 0)
+ 	    cache_new = (void *) -1;
+ 	}
+-      else if (file != MAP_FAILED && cachesize > sizeof *cache_new
+-	       && memcmp (file, CACHEMAGIC_VERSION_NEW,
+-			  sizeof CACHEMAGIC_VERSION_NEW - 1) == 0)
+-	{
+-	  cache_new = file;
+-	  cache = file;
+-	}
+       else
+ 	{
+ 	  if (file != MAP_FAILED)
+-- 
+2.34.1
+

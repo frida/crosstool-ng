@@ -17,6 +17,10 @@
 # are still using quite ancient versions. Please do not retire versions
 # (including versions in between) until the EOL dates indicated in version.desc.
 
+if GLIBC_USE_PORTS_EXTERNAL
+source "config/versions/glibc-ports.in"
+endif
+
 # Glibc has some dependencies on the kernel headers:
 config GLIBC_DEP_KERNEL_HEADERS_VERSION
     def_bool y
@@ -121,6 +125,10 @@ config GLIBC_USE_PORTS_ADDON
     depends on ARCH_ALPHA || ARCH_ARM || ARCH_M68K || ARCH_MIPS || ARCH_POWERPC
     depends on GLIBC_HAS_PORTS_ADDON
     depends on !GLIBC_USE_ORACLE
+
+config GLIBC_USE_PORTS_EXTERNAL
+    def_bool y
+    depends on GLIBC_USE_PORTS_ADDON && GLIBC_HAS_PORTS_ADDON_EXTERNAL
 
 config GLIBC_USE_NPTL_ADDON
     def_bool y

@@ -1,0 +1,25 @@
+From f97a5772a01adc0a8955473362d7affbda20d28a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ole=20Andr=C3=A9=20Vadla=20Ravn=C3=A5s?= <oleavr@gmail.com>
+Date: Mon, 12 Sep 2022 15:19:12 +0000
+Subject: [PATCH 2/2] MIPS: Fix inline directive
+
+---
+ sysdeps/unix/sysv/linux/mips/bits/socket.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/sysdeps/unix/sysv/linux/mips/bits/socket.h b/sysdeps/unix/sysv/linux/mips/bits/socket.h
+index 0e4a2be..aa57c37 100644
+--- a/sysdeps/unix/sysv/linux/mips/bits/socket.h
++++ b/sysdeps/unix/sysv/linux/mips/bits/socket.h
+@@ -259,7 +259,7 @@ extern struct cmsghdr *__cmsg_nxthdr (struct msghdr *__mhdr,
+ 				      struct cmsghdr *__cmsg) __THROW;
+ #ifdef __USE_EXTERN_INLINES
+ # ifndef _EXTERN_INLINE
+-#  define _EXTERN_INLINE extern __inline
++#  define _EXTERN_INLINE extern __inline __attribute__ ((__gnu_inline__))
+ # endif
+ _EXTERN_INLINE struct cmsghdr *
+ __NTH (__cmsg_nxthdr (struct msghdr *__mhdr, struct cmsghdr *__cmsg))
+-- 
+2.34.1
+

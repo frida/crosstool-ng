@@ -1,0 +1,35 @@
+From 4104212dfd7f91fa0ac478ed374c8ab4bccdc781 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ole=20Andr=C3=A9=20Vadla=20Ravn=C3=A5s?= <oleavr@gmail.com>
+Date: Mon, 12 Sep 2022 15:09:04 +0000
+Subject: [PATCH] MIPS: Backport umul_ppmm()
+
+---
+ stdlib/longlong.h | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/stdlib/longlong.h b/stdlib/longlong.h
+index ca6285a..45d0d81 100644
+--- a/stdlib/longlong.h
++++ b/stdlib/longlong.h
+@@ -585,12 +585,12 @@ UDItype __umulsidi3 (USItype, USItype);
+ #endif /* __m88000__ */
+ 
+ #if defined (__mips__) && W_TYPE_SIZE == 32
+-#define umul_ppmm(w1, w0, u, v) \
+-  __asm__ ("multu %2,%3"						\
+-	   : "=l" ((USItype) (w0)),					\
+-	     "=h" ((USItype) (w1))					\
+-	   : "d" ((USItype) (u)),					\
+-	     "d" ((USItype) (v)))
++#define umul_ppmm(w1, w0, u, v)						\
++  do {									\
++    UDItype __x = (UDItype) (USItype) (u) * (USItype) (v);		\
++    (w1) = (USItype) (__x >> 32);					\
++    (w0) = (USItype) (__x);						\
++  } while (0)
+ #define UMUL_TIME 10
+ #define UDIV_TIME 100
+ #endif /* __mips__ */
+-- 
+2.34.1
+

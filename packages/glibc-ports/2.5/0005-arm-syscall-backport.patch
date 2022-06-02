@@ -1,0 +1,256 @@
+diff -Nur glibc-ports-2.5-orig/sysdeps/unix/sysv/linux/arm/eabi/sysdep.h glibc-ports-2.5/sysdeps/unix/sysv/linux/arm/eabi/sysdep.h
+--- glibc-ports-2.5-orig/sysdeps/unix/sysv/linux/arm/eabi/sysdep.h	2022-06-02 21:02:32.829718276 +0200
++++ glibc-ports-2.5/sysdeps/unix/sysv/linux/arm/eabi/sysdep.h	2022-06-01 21:46:34.719385353 +0200
+@@ -42,8 +42,36 @@
+    argument; otherwise the (optional) compatibility code for APCS binaries
+    may be invoked.  */
+ 
+-#undef INTERNAL_SYSCALL_RAW
+-#define INTERNAL_SYSCALL_RAW(name, err, nr, args...)		\
++#if defined(__thumb__)
++/* We can not expose the use of r7 to the compiler.  GCC (as
++   of 4.5) uses r7 as the hard frame pointer for Thumb - although
++   for Thumb-2 it isn't obviously a better choice than r11.
++   And GCC does not support asms that conflict with the frame
++   pointer.
++
++   This would be easier if syscall numbers never exceeded 255,
++   but they do.  For the moment the LOAD_ARGS_7 is sacrificed.
++   We can't use push/pop inside the asm because that breaks
++   unwinding (i.e. thread cancellation) for this frame.  We can't
++   locally save and restore r7, because we do not know if this
++   function uses r7 or if it is our caller's r7; if it is our caller's,
++   then unwinding will fail higher up the stack.  So we move the
++   syscall out of line and provide its own unwind information.  */
++# undef INTERNAL_SYSCALL_RAW
++# define INTERNAL_SYSCALL_RAW(name, err, nr, args...)		\
++  ({								\
++      register int _a1 asm ("a1");				\
++      int _nametmp = name;					\
++      LOAD_ARGS_##nr (args)					\
++      register int _name asm ("ip") = _nametmp;			\
++      asm volatile ("bl      __libc_do_syscall"			\
++                    : "=r" (_a1)				\
++                    : "r" (_name) ASM_ARGS_##nr			\
++                    : "memory", "lr");				\
++      _a1; })
++#else /* ARM */
++# undef INTERNAL_SYSCALL_RAW
++# define INTERNAL_SYSCALL_RAW(name, err, nr, args...)		\
+   ({								\
+        register int _a1 asm ("r0"), _nr asm ("r7");		\
+        LOAD_ARGS_##nr (args)					\
+@@ -53,6 +81,7 @@
+ 		     : "r" (_nr) ASM_ARGS_##nr			\
+ 		     : "memory");				\
+        _a1; })
++#endif
+ 
+ /* For EABI, non-constant syscalls are actually pretty easy...  */
+ #undef INTERNAL_SYSCALL_NCS
+@@ -73,7 +102,7 @@
+ 
+ #undef	DO_CALL
+ #define DO_CALL(syscall_name, args)		\
+-    DOARGS_##args				\
++    DOARGS_##args;				\
+     mov ip, r7;					\
+     ldr r7, =SYS_ify (syscall_name);		\
+     swi 0x0;					\
+diff -Nur glibc-ports-2.5-orig/sysdeps/unix/sysv/linux/arm/libc-do-syscall.S glibc-ports-2.5/sysdeps/unix/sysv/linux/arm/libc-do-syscall.S
+--- glibc-ports-2.5-orig/sysdeps/unix/sysv/linux/arm/libc-do-syscall.S	1970-01-01 01:00:00.000000000 +0100
++++ glibc-ports-2.5/sysdeps/unix/sysv/linux/arm/libc-do-syscall.S	2022-06-01 21:46:34.719385353 +0200
+@@ -0,0 +1,53 @@
++/* Copyright (C) 2010-2022 Free Software Foundation, Inc.
++   This file is part of the GNU C Library.
++
++   The GNU C Library is free software; you can redistribute it and/or
++   modify it under the terms of the GNU Lesser General Public
++   License as published by the Free Software Foundation; either
++   version 2.1 of the License, or (at your option) any later version.
++
++   The GNU C Library is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++   Lesser General Public License for more details.
++
++   You should have received a copy of the GNU Lesser General Public
++   License along with the GNU C Library.  If not, see
++   <https://www.gnu.org/licenses/>.  */
++
++/* When this file is built for inclusion in nscd, _FORTIFY_SOURCE is
++   defined but -O is not used, resulting in a warning from features.h.  */
++#undef _FORTIFY_SOURCE
++#include <sysdep.h>
++
++/* Out-of-line syscall stub.  We expect the system call number in ip
++   and return the raw result in r0.  No registers are clobbered.
++   We could avoid using the stack for this, but the goal is accurate
++   unwind information - and while there is a reserved prefix in the
++   ARM unwind tables for register to register moves, the actual opcodes
++   are not defined.  */
++
++#if defined(__thumb__)
++	.thumb
++	.syntax unified
++	.hidden __libc_do_syscall
++
++#undef CALL_MCOUNT
++#define CALL_MCOUNT
++
++ENTRY (__libc_do_syscall)
++	.fnstart
++	cfi_startproc
++	push	{r7, lr}
++	.save	{r7, lr}
++	cfi_adjust_cfa_offset (8)
++	cfi_rel_offset (r7, 0)
++	cfi_rel_offset (lr, 4)
++	mov	r7, ip
++	swi	0x0
++	pop	{r7, pc}
++	cfi_endproc
++	.fnend
++END (__libc_do_syscall)
++
++#endif /* __thumb__ */
+diff -Nur glibc-ports-2.5-orig/sysdeps/unix/sysv/linux/arm/Makefile glibc-ports-2.5/sysdeps/unix/sysv/linux/arm/Makefile
+--- glibc-ports-2.5-orig/sysdeps/unix/sysv/linux/arm/Makefile	2022-06-02 21:02:32.830718289 +0200
++++ glibc-ports-2.5/sysdeps/unix/sysv/linux/arm/Makefile	2022-06-02 20:55:37.705478869 +0200
+@@ -13,6 +13,39 @@
+ sysdep_headers += sys/elf.h sys/io.h
+ endif
+ 
++ifeq ($(subdir),rt)
++librt-sysdep_routines += libc-do-syscall
++librt-shared-only-routines += libc-do-syscall
++endif
++
++ifeq ($(subdir),nptl)
++libpthread-routines += libc-do-syscall
++libpthread-shared-only-routines += libc-do-syscall
++endif
++
++ifeq ($(subdir),resolv)
++libanl-sysdep_routines += libc-do-syscall
++libanl-shared-only-routines += libc-do-syscall
++endif
++
++ifeq ($(subdir),csu)
++sysdep_routines += libc-do-syscall
++endif
++
++ifeq ($(subdir),nscd)
++nscd-modules += libc-do-syscall
++endif
++
++ifeq ($(subdir),nss)
++libnss_db-sysdep_routines += libc-do-syscall
++libnss_db-shared-only-routines += libc-do-syscall
++endif
++
++ifeq ($(subdir),posix)
++LDFLAGS-tst-rfc3484 += $(common-objpfx)csu/libc-do-syscall.o
++LDFLAGS-tst-rfc3484-2 += $(common-objpfx)csu/libc-do-syscall.o
++endif
++
+ ifeq ($(subdir),signal)
+ sysdep_routines += sigrestorer
+ endif
+diff -Nur glibc-ports-2.5-orig/sysdeps/unix/sysv/linux/arm/sysdep.h glibc-ports-2.5/sysdeps/unix/sysv/linux/arm/sysdep.h
+--- glibc-ports-2.5-orig/sysdeps/unix/sysv/linux/arm/sysdep.h	2022-06-02 21:02:32.830718289 +0200
++++ glibc-ports-2.5/sysdeps/unix/sysv/linux/arm/sysdep.h	2022-06-01 22:41:51.493585126 +0200
+@@ -165,29 +165,71 @@
+ 
+ */
+ 
++/* We must save and restore r7 (call-saved) for the syscall number.
++   We never make function calls from inside here (only potentially
++   signal handlers), so we do not bother with doubleword alignment.
++
++   Just like the APCS syscall convention, the EABI syscall convention uses
++   r0 through r6 for up to seven syscall arguments.  None are ever passed to
++   the kernel on the stack, although incoming arguments are on the stack for
++   syscalls with five or more arguments.
++
++   The assembler will convert the literal pool load to a move for most
++   syscalls.  */
++
+ #undef	DO_CALL
+-#define DO_CALL(syscall_name, args)		\
+-    DOARGS_##args				\
+-    swi SYS_ify (syscall_name); 		\
+-    UNDOARGS_##args
+-
+-#define DOARGS_0 /* nothing */
+-#define DOARGS_1 /* nothing */
+-#define DOARGS_2 /* nothing */
+-#define DOARGS_3 /* nothing */
+-#define DOARGS_4 /* nothing */
+-#define DOARGS_5 str r4, [sp, $-4]!; ldr r4, [sp, $4];
+-#define DOARGS_6 mov ip, sp; stmfd sp!, {r4, r5}; ldmia ip, {r4, r5};
+-#define DOARGS_7 mov ip, sp; stmfd sp!, {r4, r5, r6}; ldmia ip, {r4, r5, r6};
+-
+-#define UNDOARGS_0 /* nothing */
+-#define UNDOARGS_1 /* nothing */
+-#define UNDOARGS_2 /* nothing */
+-#define UNDOARGS_3 /* nothing */
+-#define UNDOARGS_4 /* nothing */
+-#define UNDOARGS_5 ldr r4, [sp], $4;
+-#define UNDOARGS_6 ldmfd sp!, {r4, r5};
+-#define UNDOARGS_7 ldmfd sp!, {r4, r5, r6};
++#define DO_CALL(syscall_name, args)			\
++	DOARGS_##args;					\
++	ldr	r7, =SYS_ify (syscall_name);		\
++	swi	0x0;					\
++	UNDOARGS_##args
++
++#undef  DOARGS_0
++#define DOARGS_0					\
++	push	{ r7 }
++#undef  DOARGS_1
++#define DOARGS_1 DOARGS_0
++#undef  DOARGS_2
++#define DOARGS_2 DOARGS_0
++#undef  DOARGS_3
++#define DOARGS_3 DOARGS_0
++#undef  DOARGS_4
++#define DOARGS_4 DOARGS_0
++#undef  DOARGS_5
++#define DOARGS_5					\
++	push	{r4, r7};				\
++	ldr	r4, [sp, #8]
++#undef  DOARGS_6
++#define DOARGS_6					\
++	mov	ip, sp;					\
++	push	{r4, r5, r7};				\
++	ldmia	ip, {r4, r5}
++#undef  DOARGS_7
++#define DOARGS_7					\
++	mov	ip, sp;					\
++	push	{r4, r5, r6, r7};			\
++	ldmia	ip, {r4, r5, r6}
++
++#undef  UNDOARGS_0
++#define UNDOARGS_0					\
++	pop	{r7}
++#undef  UNDOARGS_1
++#define UNDOARGS_1 UNDOARGS_0
++#undef  UNDOARGS_2
++#define UNDOARGS_2 UNDOARGS_0
++#undef  UNDOARGS_3
++#define UNDOARGS_3 UNDOARGS_0
++#undef  UNDOARGS_4
++#define UNDOARGS_4 UNDOARGS_0
++#undef  UNDOARGS_5
++#define UNDOARGS_5					\
++	pop	{r4, r7}
++#undef  UNDOARGS_6
++#define UNDOARGS_6					\
++	pop	{r4, r5, r7}
++#undef  UNDOARGS_7
++#define UNDOARGS_7					\
++	pop	{r4, r5, r6, r7}
+ 
+ #else /* not __ASSEMBLER__ */
+ 

@@ -1,0 +1,57 @@
+diff -Nur glibc-2.5-orig/nptl/sysdeps/x86_64/tls.h glibc-2.5/nptl/sysdeps/x86_64/tls.h
+--- glibc-2.5-orig/nptl/sysdeps/x86_64/tls.h	2006-04-27 01:25:34.000000000 +0000
++++ glibc-2.5/nptl/sysdeps/x86_64/tls.h	2022-09-08 19:58:29.067757051 +0000
+@@ -236,6 +236,23 @@
+ #endif
+ 
+ 
++/* 1 if 'type' is a pointer type, 0 otherwise.  */
++# define __pointer_type(type) (__builtin_classify_type ((type) 0) == 5)
++
++/* intptr_t if P is true, or T if P is false.  */
++# define __integer_if_pointer_type_sub(T, P) \
++  __typeof__ (*(0 ? (__typeof__ (0 ? (T *) 0 : (void *) (P))) 0 \
++		  : (__typeof__ (0 ? (intptr_t *) 0 : (void *) (!(P)))) 0))
++
++/* intptr_t if EXPR has a pointer type, or the type of EXPR otherwise.  */
++# define __integer_if_pointer_type(expr) \
++  __integer_if_pointer_type_sub(__typeof__ ((__typeof__ (expr)) 0), \
++				__pointer_type (__typeof__ (expr)))
++
++/* Cast an integer or a pointer VAL to integer with proper type.  */
++# define cast_to_integer(val) ((__integer_if_pointer_type (val)) (val))
++
++
+ /* Same as THREAD_SETMEM, but the member offset can be non-constant.  */
+ # define THREAD_SETMEM(descr, member, value) \
+   ({ if (sizeof (descr->member) == 1)					      \
+@@ -254,7 +271,7 @@
+ 	   abort ();							      \
+ 									      \
+ 	 asm volatile ("movq %q0,%%fs:%P1" :				      \
+-		       : IMM_MODE ((unsigned long int) value),		      \
++		       : "er" ((uint64_t) cast_to_integer (value)),	      \
+ 			 "i" (offsetof (struct pthread, member)));	      \
+        }})
+ 
+@@ -279,7 +296,7 @@
+ 	   abort ();							      \
+ 									      \
+ 	 asm volatile ("movq %q0,%%fs:%P1(,%q2,8)" :			      \
+-		       : IMM_MODE ((unsigned long int) value),		      \
++		       : "er" ((uint64_t) cast_to_integer (value)),	      \
+ 			 "i" (offsetof (struct pthread, member[0])),	      \
+ 			 "r" (idx));					      \
+        }})
+diff -Nur glibc-2.5-orig/sysdeps/i386/fpu/ftestexcept.c glibc-2.5/sysdeps/i386/fpu/ftestexcept.c
+--- glibc-2.5-orig/sysdeps/i386/fpu/ftestexcept.c	2004-03-05 10:14:48.000000000 +0000
++++ glibc-2.5/sysdeps/i386/fpu/ftestexcept.c	2022-09-08 22:00:23.316785440 +0000
+@@ -26,7 +26,7 @@
+ int
+ fetestexcept (int excepts)
+ {
+-  int temp;
++  short temp;
+   int xtemp = 0;
+ 
+   /* Get current exceptions.  */

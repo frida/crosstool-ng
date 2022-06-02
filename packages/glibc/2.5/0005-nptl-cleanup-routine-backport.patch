@@ -1,0 +1,28 @@
+diff -Nur glibc-2.5-orig/nptl/libc-cancellation.c glibc-2.5/nptl/libc-cancellation.c
+--- glibc-2.5-orig/nptl/libc-cancellation.c	2005-12-21 23:17:21.000000000 +0100
++++ glibc-2.5/nptl/libc-cancellation.c	2022-06-01 23:35:37.253718490 +0200
+@@ -105,12 +105,4 @@
+     }
+ }
+ 
+-
+-void
+-__libc_cleanup_routine (struct __pthread_cleanup_frame *f)
+-{
+-  if (f->__do_it)
+-    f->__cancel_routine (f->__cancel_arg);
+-}
+-
+ #endif
+diff -Nur glibc-2.5-orig/nptl/sysdeps/pthread/bits/libc-lock.h glibc-2.5/nptl/sysdeps/pthread/bits/libc-lock.h
+--- glibc-2.5-orig/nptl/sysdeps/pthread/bits/libc-lock.h	2005-04-05 23:33:41.000000000 +0200
++++ glibc-2.5/nptl/sysdeps/pthread/bits/libc-lock.h	2022-06-01 23:34:53.046150903 +0200
+@@ -408,7 +408,7 @@
+ 
+ 
+ /* Normal cleanup handling, based on C cleanup attribute.  */
+-extern __inline void
++static __always_inline void
+ __libc_cleanup_routine (struct __pthread_cleanup_frame *f)
+ {
+   if (f->__do_it)

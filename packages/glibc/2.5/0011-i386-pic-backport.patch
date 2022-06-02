@@ -1,0 +1,364 @@
+commit 96406b2f0acb3926d726f6ba4fd135fbcedc8873
+Author: Ole André Vadla Ravnås <oleavr@gmail.com>
+Date:   Fri Sep 9 23:30:00 2022 +0000
+
+    i386: Backport PIC-related fixes
+
+    Based on:
+
+        commit 9a1d92541ff2e864aab682d66fba7ea2555ef13b
+        Author: Joseph Myers <joseph@codesourcery.com>
+        Date:   Fri Feb 3 23:22:53 2012 +0000
+
+            Consistently use macros for x86 PIC thunks.
+
+        commit b1da7dd99dcffe28d02a6515a9dc8cca3205a497
+        Author: Joseph Myers <joseph@codesourcery.com>
+        Date:   Fri Feb 3 23:24:19 2012 +0000
+
+            Use macros for x86 PIC thunk names.
+
+        commit d8e0ca509a83e832123f6ab508fce620159fb2dc
+        Author: Joseph Myers <joseph@codesourcery.com>
+        Date:   Sun Feb 5 14:34:14 2012 +0000
+
+            Use macro for PIC setup in inline asm.
+
+        commit 314054eaef2aec965d2f1bced7e86abca118463e
+        Author: Joseph Myers <joseph@codesourcery.com>
+        Date:   Mon Feb 6 18:05:54 2012 +0000
+
+            Match x86 PIC thunk names to compiler version.
+
+        commit d4a54ac6494dd47a9c3d490e02897c69c0432341
+        Author: Joseph Myers <joseph@codesourcery.com>
+        Date:   Mon Feb 6 23:01:25 2012 +0000
+
+            Undefine and redefine __i686 for assembly code.
+
+        commit 1f1509082e66d1ddd8a710639aba0f4ea0815157
+        Author: H.J. Lu <hjl.tools@gmail.com>
+        Date:   Thu Jun 21 10:17:07 2012 -0700
+
+            Fix a typo in i386 SYSCALL_PIC_SETUP
+
+        commit 9f9f27248bf464b465fd4f05112a5b479503e83a
+        Author: Joseph Myers <joseph@codesourcery.com>
+        Date:   Wed Nov 4 21:34:36 2015 +0000
+
+            Remove miscellaneous GCC >= 4.7 version conditionals.
+
+        commit b5b7fb76e15c0db545aa11a3ce88f836e5d01a19
+        Author: Adhemerval Zanella <adhemerval.zanella@linaro.org>
+        Date:   Fri Feb 28 10:46:14 2020 -0300
+
+            i386: Use comdat instead of .gnu.linkonce for i386 setup pic register (BZ #20543)
+
+diff --git a/nptl/sysdeps/unix/sysv/linux/i386/i486/pthread_cond_wait.S b/nptl/sysdeps/unix/sysv/linux/i386/i486/pthread_cond_wait.S
+index f16c7d9..bb73bc2 100644
+--- a/nptl/sysdeps/unix/sysv/linux/i386/i486/pthread_cond_wait.S
++++ b/nptl/sysdeps/unix/sysv/linux/i386/i486/pthread_cond_wait.S
+@@ -510,17 +510,6 @@ __condvar_w_cleanup:
+ .LENDFDE:
+ 
+ 
+-#ifdef PIC
+-	.section .gnu.linkonce.t.__i686.get_pc_thunk.cx,"ax",@progbits
+-	.globl	__i686.get_pc_thunk.cx
+-	.hidden	__i686.get_pc_thunk.cx
+-	.type	__i686.get_pc_thunk.cx,@function
+-__i686.get_pc_thunk.cx:
+-	movl (%esp), %ecx;
+-	ret
+-	.size	__i686.get_pc_thunk.cx,.-__i686.get_pc_thunk.cx
+-#endif
+-
+ #ifdef SHARED
+ 	.hidden DW.ref.__gcc_personality_v0
+ 	.weak   DW.ref.__gcc_personality_v0
+diff --git a/nptl/sysdeps/unix/sysv/linux/i386/i486/sem_post.S b/nptl/sysdeps/unix/sysv/linux/i386/i486/sem_post.S
+index 71e96d2..f7126db 100644
+--- a/nptl/sysdeps/unix/sysv/linux/i386/i486/sem_post.S
++++ b/nptl/sysdeps/unix/sysv/linux/i386/i486/sem_post.S
+@@ -58,7 +58,7 @@ __new_sem_post:
+ 
+ 1:
+ #ifdef PIC
+-	call	__i686.get_pc_thunk.bx
++	SETUP_PIC_REG(bx)
+ #else
+ 	movl	$4f, %ebx
+ 4:
+@@ -88,15 +88,3 @@ __new_sem_post:
+ __old_sem_post = __new_sem_post
+ 	compat_symbol(libpthread, __old_sem_post, sem_post, GLIBC_2_0)
+ #endif
+-
+-
+-#ifdef PIC
+-	.section .gnu.linkonce.t.__i686.get_pc_thunk.bx,"ax",@progbits
+-	.globl	__i686.get_pc_thunk.bx
+-	.hidden	__i686.get_pc_thunk.bx
+-	.type	__i686.get_pc_thunk.bx,@function
+-__i686.get_pc_thunk.bx:
+-	movl (%esp), %ebx;
+-	ret
+-	.size	__i686.get_pc_thunk.bx,.-__i686.get_pc_thunk.bx
+-#endif
+diff --git a/nptl/sysdeps/unix/sysv/linux/i386/i486/sem_timedwait.S b/nptl/sysdeps/unix/sysv/linux/i386/i486/sem_timedwait.S
+index aa1f9f4..6d4b9f8 100644
+--- a/nptl/sysdeps/unix/sysv/linux/i386/i486/sem_timedwait.S
++++ b/nptl/sysdeps/unix/sysv/linux/i386/i486/sem_timedwait.S
+@@ -151,7 +151,7 @@ sem_timedwait:
+ 3:	negl	%esi
+ 6:
+ #ifdef PIC
+-	call	__i686.get_pc_thunk.bx
++	SETUP_PIC_REG(bx)
+ #else
+ 	movl	$4f, %ebx
+ 4:
+diff --git a/nptl/sysdeps/unix/sysv/linux/i386/i486/sem_trywait.S b/nptl/sysdeps/unix/sysv/linux/i386/i486/sem_trywait.S
+index fbc3b3c..bd843ae 100644
+--- a/nptl/sysdeps/unix/sysv/linux/i386/i486/sem_trywait.S
++++ b/nptl/sysdeps/unix/sysv/linux/i386/i486/sem_trywait.S
+@@ -48,7 +48,7 @@ __new_sem_trywait:
+ 
+ 1:
+ #ifdef PIC
+-	call	__i686.get_pc_thunk.cx
++	SETUP_PIC_REG(cx)
+ #else
+ 	movl	$3f, %ecx
+ 3:
+@@ -76,15 +76,3 @@ __new_sem_trywait:
+ __old_sem_trywait = __new_sem_trywait
+ 	compat_symbol(libpthread, __old_sem_trywait, sem_trywait, GLIBC_2_0)
+ #endif
+-
+-
+-#ifdef PIC
+-	.section .gnu.linkonce.t.__i686.get_pc_thunk.cx,"ax",@progbits
+-	.globl	__i686.get_pc_thunk.cx
+-	.hidden	__i686.get_pc_thunk.cx
+-	.type	__i686.get_pc_thunk.cx,@function
+-__i686.get_pc_thunk.cx:
+-	movl (%esp), %ecx;
+-	ret
+-	.size	__i686.get_pc_thunk.cx,.-__i686.get_pc_thunk.cx
+-#endif
+diff --git a/nptl/sysdeps/unix/sysv/linux/i386/i486/sem_wait.S b/nptl/sysdeps/unix/sysv/linux/i386/i486/sem_wait.S
+index b129627..369c43b 100644
+--- a/nptl/sysdeps/unix/sysv/linux/i386/i486/sem_wait.S
++++ b/nptl/sysdeps/unix/sysv/linux/i386/i486/sem_wait.S
+@@ -95,7 +95,7 @@ __new_sem_wait:
+ 	je	3b
+ 	negl	%esi
+ #ifdef PIC
+-	call	__i686.get_pc_thunk.bx
++	SETUP_PIC_REG(bx)
+ #else
+ 	movl	$4f, %ebx
+ 4:
+diff --git a/nptl/sysdeps/unix/sysv/linux/i386/pthread_once.S b/nptl/sysdeps/unix/sysv/linux/i386/pthread_once.S
+index 312933c..89c2a29 100644
+--- a/nptl/sysdeps/unix/sysv/linux/i386/pthread_once.S
++++ b/nptl/sysdeps/unix/sysv/linux/i386/pthread_once.S
+@@ -58,8 +58,7 @@ __pthread_once:
+ 	   Get the fork generation counter now.  */
+ 6:	movl	(%ebx), %eax
+ #ifdef PIC
+-	call	__i686.get_pc_thunk.cx
+-	addl	$_GLOBAL_OFFSET_TABLE_, %ecx
++	LOAD_PIC_REG(cx)
+ #endif
+ 
+ 5:	movl	%eax, %edx
+@@ -168,15 +167,3 @@ __pthread_once_internal = __pthread_once
+ 
+ 	.globl	pthread_once
+ pthread_once = __pthread_once
+-
+-
+-#ifdef PIC
+-	.section .gnu.linkonce.t.__i686.get_pc_thunk.cx,"ax",@progbits
+-	.globl	__i686.get_pc_thunk.cx
+-	.hidden	__i686.get_pc_thunk.cx
+-	.type	__i686.get_pc_thunk.cx,@function
+-__i686.get_pc_thunk.cx:
+-	movl (%esp), %ecx;
+-	ret
+-	.size	__i686.get_pc_thunk.cx,.-__i686.get_pc_thunk.cx
+-#endif
+diff --git a/sysdeps/i386/i686/memcmp.S b/sysdeps/i386/i686/memcmp.S
+index 4bd5394..bcdf90a 100644
+--- a/sysdeps/i386/i686/memcmp.S
++++ b/sysdeps/i386/i686/memcmp.S
+@@ -37,26 +37,13 @@
+    into the jump table.  */
+ #define LOAD_JUMP_TABLE_ENTRY(TABLE, INDEX) \
+   /* We first load PC into EBX.  */					      \
+-  call	__i686.get_pc_thunk.bx;						      \
++  SETUP_PIC_REG(bx);							      \
+   /* Get the address of the jump table.  */				      \
+   addl	$(TABLE - .), %ebx;						      \
+   /* Get the entry and convert the relative offset to the		      \
+      absolute address.  */						      \
+   addl	(%ebx,INDEX,4), %ebx
+ 
+-#ifdef HAVE_HIDDEN
+-	.section	.gnu.linkonce.t.__i686.get_pc_thunk.bx,"ax",@progbits
+-	.globl	__i686.get_pc_thunk.bx
+-	.hidden	__i686.get_pc_thunk.bx
+-#else
+-        .text
+-#endif
+-	ALIGN (4)
+-	.type	__i686.get_pc_thunk.bx,@function
+-__i686.get_pc_thunk.bx:
+-	movl	(%esp), %ebx
+-	ret
+-
+         .text
+ 	ALIGN (4)
+ ENTRY (BP_SYM (memcmp))
+diff --git a/sysdeps/i386/sysdep.h b/sysdeps/i386/sysdep.h
+index 2739cb0..d507f86 100644
+--- a/sysdeps/i386/sysdep.h
++++ b/sysdeps/i386/sysdep.h
+@@ -19,6 +19,21 @@
+ 
+ #include <sysdeps/generic/sysdep.h>
+ 
++/* It is desirable that the names of PIC thunks match those used by
++   GCC so that multiple copies are eliminated by the linker.  Because
++   GCC 4.6 and earlier use __i686 in the names, it is necessary to
++   override that predefined macro.  */
++#if defined __i686 && defined __ASSEMBLER__
++#undef __i686
++#define __i686 __i686
++#endif
++
++#ifdef	__ASSEMBLER__
++# define GET_PC_THUNK(reg) __x86.get_pc_thunk.reg
++#else
++# define GET_PC_THUNK_STR(reg) "__x86.get_pc_thunk." #reg
++#endif
++
+ #ifdef	__ASSEMBLER__
+ 
+ /* Syntactic details of assembler.  */
+@@ -121,17 +136,6 @@ lose: SYSCALL_PIC_SETUP							      \
+ #define	PSEUDO_END(name)						      \
+   END (name)
+ 
+-#undef JUMPTARGET
+-#ifdef PIC
+-#define JUMPTARGET(name)	name##@PLT
+-#define SYSCALL_PIC_SETUP \
+-    pushl %ebx;								      \
+-    cfi_adjust_cfa_offset (4);						      \
+-    call 0f;								      \
+-0:  popl %ebx;								      \
+-    cfi_adjust_cfa_offset (-4);						      \
+-    addl $_GLOBAL_OFFSET_TABLE+[.-0b], %ebx;
+-
+ # ifndef HAVE_HIDDEN
+ #  define SETUP_PIC_REG(reg) \
+   call 1f;								      \
+@@ -141,23 +145,35 @@ lose: SYSCALL_PIC_SETUP							      \
+   .previous
+ # else
+ #  define SETUP_PIC_REG(reg) \
+-  .ifndef __i686.get_pc_thunk.reg;					      \
+-  .section .gnu.linkonce.t.__i686.get_pc_thunk.reg,"ax",@progbits;	      \
+-  .globl __i686.get_pc_thunk.reg;					      \
+-  .hidden __i686.get_pc_thunk.reg;					      \
+-  .type __i686.get_pc_thunk.reg,@function;				      \
+-__i686.get_pc_thunk.reg:						      \
++  .ifndef GET_PC_THUNK(reg);					      \
++  .section .text.GET_PC_THUNK(reg),"axG",@progbits,GET_PC_THUNK(reg),comdat;  \
++  .globl GET_PC_THUNK(reg);					      \
++  .hidden GET_PC_THUNK(reg);					      \
++  .p2align 4;								      \
++  .type GET_PC_THUNK(reg),@function;				      \
++GET_PC_THUNK(reg):						      \
+   movl (%esp), %e##reg;							      \
+   ret;									      \
+-  .size __i686.get_pc_thunk.reg, . - __i686.get_pc_thunk.reg;		      \
++  .size GET_PC_THUNK(reg), . - GET_PC_THUNK(reg);		      \
+   .previous;								      \
+   .endif;								      \
+-  call __i686.get_pc_thunk.reg
++  call GET_PC_THUNK(reg)
+ # endif
+ 
+ # define LOAD_PIC_REG(reg) \
+   SETUP_PIC_REG(reg); addl $_GLOBAL_OFFSET_TABLE_, %e##reg
+ 
++#undef JUMPTARGET
++#ifdef PIC
++#define JUMPTARGET(name)	name##@PLT
++#define SYSCALL_PIC_SETUP \
++    pushl %ebx;								      \
++    cfi_adjust_cfa_offset (4);						      \
++    call 0f;								      \
++0:  popl %ebx;								      \
++    cfi_adjust_cfa_offset (-4);						      \
++    addl $_GLOBAL_OFFSET_TABLE_+[.-0b], %ebx;
++
+ #else
+ #define JUMPTARGET(name)	name
+ #define SYSCALL_PIC_SETUP	/* Nothing.  */
+@@ -172,4 +188,25 @@ __i686.get_pc_thunk.reg:						      \
+ #endif
+ #endif
+ 
++#else /* __ASSEMBLER__ */
++
++# define SETUP_PIC_REG_STR(reg)						\
++  ".ifndef " GET_PC_THUNK_STR (reg) "\n"				\
++  ".section .text." GET_PC_THUNK_STR (reg) ",\"axG\",@progbits,"	\
++    GET_PC_THUNK_STR (reg) ",comdat\n"					\
++  ".globl " GET_PC_THUNK_STR (reg) "\n"					\
++  ".hidden " GET_PC_THUNK_STR (reg) "\n"				\
++  ".p2align 4\n"							\
++  ".type " GET_PC_THUNK_STR (reg) ",@function\n"			\
++GET_PC_THUNK_STR (reg) ":"						\
++  "movl (%%esp), %%e" #reg "\n"						\
++  "ret\n"								\
++  ".size " GET_PC_THUNK_STR (reg) ", . - " GET_PC_THUNK_STR (reg) "\n"	\
++  ".previous\n"								\
++  ".endif\n"								\
++  "call " GET_PC_THUNK_STR (reg)
++
++# define LOAD_PIC_REG_STR(reg) \
++  SETUP_PIC_REG_STR (reg) "\naddl $_GLOBAL_OFFSET_TABLE_, %%e" #reg
++
+ #endif	/* __ASSEMBLER__ */
+diff --git a/sysdeps/unix/sysv/linux/i386/sysdep.h b/sysdeps/unix/sysv/linux/i386/sysdep.h
+index 90423d8..161f9a5 100644
+--- a/sysdeps/unix/sysv/linux/i386/sysdep.h
++++ b/sysdeps/unix/sysv/linux/i386/sysdep.h
+@@ -538,20 +538,11 @@ asm (".L__X'%ebx = 1\n\t"
+ # define check_consistency()						      \
+   ({ int __res;								      \
+      __asm__ __volatile__						      \
+-       ("call __i686.get_pc_thunk.cx;"					      \
+-	"addl $_GLOBAL_OFFSET_TABLE_, %%ecx;"				      \
++       (LOAD_PIC_REG_STR (cx) ";"					      \
+ 	"subl %%ebx, %%ecx;"						      \
+ 	"je 1f;"							      \
+ 	"ud2;"								      \
+ 	"1:\n"								      \
+-	".section .gnu.linkonce.t.__i686.get_pc_thunk.cx,\"ax\",@progbits;"   \
+-	".globl __i686.get_pc_thunk.cx;"				      \
+-	".hidden __i686.get_pc_thunk.cx;"				      \
+-	".type __i686.get_pc_thunk.cx,@function;"			      \
+-	"__i686.get_pc_thunk.cx:"					      \
+-	"movl (%%esp), %%ecx;"						      \
+-	"ret;"								      \
+-	".previous"							      \
+ 	: "=c" (__res));						      \
+      __res; })
+ #endif

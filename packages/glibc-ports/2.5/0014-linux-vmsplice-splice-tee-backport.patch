@@ -1,0 +1,74 @@
+From b5d592e8a774dc5d44b2ebce02ee540d9092e0b6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ole=20Andr=C3=A9=20Vadla=20Ravn=C3=A5s?= <oleavr@gmail.com>
+Date: Mon, 12 Sep 2022 16:53:03 +0000
+Subject: [PATCH] linux: Fix prototypes of vmsplice(), splice(), and tee()
+
+Backport of:
+
+    a7d03b9189c8ed5fefe566f61cec0da6c4ad4276
+    57ba32a810df29d2a3f45ffc2d1c1f6170a5a9f7
+    017cc6330d0dcb4f315b93a8d612f4f67204b2b4
+---
+ sysdeps/unix/sysv/linux/arm/bits/fcntl.h  | 13 +++++++------
+ sysdeps/unix/sysv/linux/mips/bits/fcntl.h | 13 +++++++------
+ 2 files changed, 14 insertions(+), 12 deletions(-)
+
+diff --git a/sysdeps/unix/sysv/linux/arm/bits/fcntl.h b/sysdeps/unix/sysv/linux/arm/bits/fcntl.h
+index 287dbd5..a079702 100644
+--- a/sysdeps/unix/sysv/linux/arm/bits/fcntl.h
++++ b/sysdeps/unix/sysv/linux/arm/bits/fcntl.h
+@@ -219,16 +219,17 @@ extern int sync_file_range (int __fd, __off64_t __from, __off64_t __to,
+ 
+ 
+ /* Splice address range into a pipe.  */
+-extern int vmsplice (int __fdout, const struct iovec *__iov, size_t __count,
+-		     unsigned int __flags);
++extern ssize_t vmsplice (int __fdout, const struct iovec *__iov,
++			 size_t __count, unsigned int __flags);
+ 
+ /* Splice two files together.  */
+-extern int splice (int __fdin, int __fdout, size_t __len, unsigned int __flags)
+-    __THROW;
++extern ssize_t splice (int __fdin, __off64_t *__offin, int __fdout,
++		       __off64_t *__offout, size_t __len,
++		       unsigned int __flags);
+ 
+ /* In-kernel implementation of tee for pipe buffers.  */
+-extern int tee (int __fdin, int __fdout, size_t __len, unsigned int __flags)
+-    __THROW;
++extern ssize_t tee (int __fdin, int __fdout, size_t __len,
++		    unsigned int __flags);
+ 
+ #endif
+ 
+diff --git a/sysdeps/unix/sysv/linux/mips/bits/fcntl.h b/sysdeps/unix/sysv/linux/mips/bits/fcntl.h
+index b6672b7..80c8a22 100644
+--- a/sysdeps/unix/sysv/linux/mips/bits/fcntl.h
++++ b/sysdeps/unix/sysv/linux/mips/bits/fcntl.h
+@@ -233,16 +233,17 @@ extern int sync_file_range (int __fd, __off64_t __from, __off64_t __to,
+ 
+ 
+ /* Splice address range into a pipe.  */
+-extern int vmsplice (int __fdout, const struct iovec *__iov, size_t __count,
+-		     unsigned int __flags);
++extern ssize_t vmsplice (int __fdout, const struct iovec *__iov,
++			 size_t __count, unsigned int __flags);
+ 
+ /* Splice two files together.  */
+-extern int splice (int __fdin, int __fdout, size_t __len, unsigned int __flags)
+-    __THROW;
++extern ssize_t splice (int __fdin, __off64_t *__offin, int __fdout,
++		       __off64_t *__offout, size_t __len,
++		       unsigned int __flags);
+ 
+ /* In-kernel implementation of tee for pipe buffers.  */
+-extern int tee (int __fdin, int __fdout, size_t __len, unsigned int __flags)
+-    __THROW;
++extern ssize_t tee (int __fdin, int __fdout, size_t __len,
++		    unsigned int __flags);
+ 
+ #endif
+ 
+-- 
+2.34.1
+

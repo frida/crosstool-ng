@@ -1,0 +1,266 @@
+commit b610dc849a5486fecfd7cb85dca1083c9cacc963
+Author: Daniel Jacobowitz <dan@codesourcery.com>
+Date:   Tue Oct 31 17:20:42 2006 +0000
+
+            * sysdeps/arm/eabi/fclrexcpt.c: Include <sysdep.h> instead of
+            <asm/procinfo.h>.  Use HWCAP_ARM_VFP instead of HWCAP_VFP.
+            * sysdeps/arm/eabi/fedisblxcpt.c: Likewise.
+            * sysdeps/arm/eabi/feenablxcpt.c: Likewise.
+            * sysdeps/arm/eabi/fegetenv.c: Likewise.
+            * sysdeps/arm/eabi/fegetexcept.c: Likewise.
+            * sysdeps/arm/eabi/fegetround.c: Likewise.
+            * sysdeps/arm/eabi/feholdexcpt.c: Likewise.
+            * sysdeps/arm/eabi/fesetenv.c: Likewise.
+            * sysdeps/arm/eabi/fesetround.c: Likewise.
+            * sysdeps/arm/eabi/fraiseexcpt.c: Likewise.
+            * sysdeps/arm/eabi/fsetexcptflg.c: Likewise.
+            * sysdeps/arm/eabi/ftestexcept.c: Likewise.
+            * sysdeps/arm/eabi/setfpucw.c: Likewise.
+
+diff --git a/sysdeps/arm/eabi/fclrexcpt.c b/sysdeps/arm/eabi/fclrexcpt.c
+index 6e5d242805..8287dc61bd 100644
+--- a/sysdeps/arm/eabi/fclrexcpt.c
++++ b/sysdeps/arm/eabi/fclrexcpt.c
+@@ -23,12 +23,12 @@
+ #include <unistd.h>
+ #include <ldsodefs.h>
+ #include <dl-procinfo.h>
+-#include <asm/procinfo.h>
++#include <sysdep.h>
+ 
+ int
+ __feclearexcept (int excepts)
+ {
+-  if (GLRO (dl_hwcap) & HWCAP_VFP)
++  if (GLRO (dl_hwcap) & HWCAP_ARM_VFP)
+     {
+       unsigned long int temp;
+ 
+diff --git a/sysdeps/arm/eabi/fedisblxcpt.c b/sysdeps/arm/eabi/fedisblxcpt.c
+index 414d34b1e3..ab6fe79dad 100644
+--- a/sysdeps/arm/eabi/fedisblxcpt.c
++++ b/sysdeps/arm/eabi/fedisblxcpt.c
+@@ -24,12 +24,12 @@
+ #include <unistd.h>
+ #include <ldsodefs.h>
+ #include <dl-procinfo.h>
+-#include <asm/procinfo.h>
++#include <sysdep.h>
+ 
+ int
+ fedisableexcept (int excepts)
+ {
+-  if (GLRO (dl_hwcap) & HWCAP_VFP)
++  if (GLRO (dl_hwcap) & HWCAP_ARM_VFP)
+     {
+       unsigned long int new_exc, old_exc;
+ 
+diff --git a/sysdeps/arm/eabi/feenablxcpt.c b/sysdeps/arm/eabi/feenablxcpt.c
+index e104bc4f65..f12b453200 100644
+--- a/sysdeps/arm/eabi/feenablxcpt.c
++++ b/sysdeps/arm/eabi/feenablxcpt.c
+@@ -24,12 +24,12 @@
+ #include <unistd.h>
+ #include <ldsodefs.h>
+ #include <dl-procinfo.h>
+-#include <asm/procinfo.h>
++#include <sysdep.h>
+ 
+ int
+ feenableexcept (int excepts)
+ {
+-  if (GLRO (dl_hwcap) & HWCAP_VFP)
++  if (GLRO (dl_hwcap) & HWCAP_ARM_VFP)
+     {
+       unsigned long int new_exc, old_exc;
+ 
+diff --git a/sysdeps/arm/eabi/fegetenv.c b/sysdeps/arm/eabi/fegetenv.c
+index 178d22a424..35bfac8434 100644
+--- a/sysdeps/arm/eabi/fegetenv.c
++++ b/sysdeps/arm/eabi/fegetenv.c
+@@ -23,12 +23,12 @@
+ #include <unistd.h>
+ #include <ldsodefs.h>
+ #include <dl-procinfo.h>
+-#include <asm/procinfo.h>
++#include <sysdep.h>
+ 
+ int
+ __fegetenv (fenv_t *envp)
+ {
+-  if (GLRO (dl_hwcap) & HWCAP_VFP)
++  if (GLRO (dl_hwcap) & HWCAP_ARM_VFP)
+     {
+       unsigned long int temp;
+       _FPU_GETCW (temp);
+diff --git a/sysdeps/arm/eabi/fegetexcept.c b/sysdeps/arm/eabi/fegetexcept.c
+index 811c8ae25a..8e29ff7c6a 100644
+--- a/sysdeps/arm/eabi/fegetexcept.c
++++ b/sysdeps/arm/eabi/fegetexcept.c
+@@ -24,12 +24,12 @@
+ #include <unistd.h>
+ #include <ldsodefs.h>
+ #include <dl-procinfo.h>
+-#include <asm/procinfo.h>
++#include <sysdep.h>
+ 
+ int
+ fegetexcept (void)
+ {
+-  if (GLRO (dl_hwcap) & HWCAP_VFP)
++  if (GLRO (dl_hwcap) & HWCAP_ARM_VFP)
+     {
+       unsigned long temp;
+ 
+diff --git a/sysdeps/arm/eabi/fegetround.c b/sysdeps/arm/eabi/fegetround.c
+index 1c4be04e65..6a3442aa40 100644
+--- a/sysdeps/arm/eabi/fegetround.c
++++ b/sysdeps/arm/eabi/fegetround.c
+@@ -23,12 +23,12 @@
+ #include <unistd.h>
+ #include <ldsodefs.h>
+ #include <dl-procinfo.h>
+-#include <asm/procinfo.h>
++#include <sysdep.h>
+ 
+ int
+ fegetround (void)
+ {
+-  if (GLRO (dl_hwcap) & HWCAP_VFP)
++  if (GLRO (dl_hwcap) & HWCAP_ARM_VFP)
+     {
+       unsigned int temp;
+ 
+diff --git a/sysdeps/arm/eabi/feholdexcpt.c b/sysdeps/arm/eabi/feholdexcpt.c
+index 9872ea17be..33c88e7d10 100644
+--- a/sysdeps/arm/eabi/feholdexcpt.c
++++ b/sysdeps/arm/eabi/feholdexcpt.c
+@@ -23,12 +23,12 @@
+ #include <unistd.h>
+ #include <ldsodefs.h>
+ #include <dl-procinfo.h>
+-#include <asm/procinfo.h>
++#include <sysdep.h>
+ 
+ int
+ feholdexcept (fenv_t *envp)
+ {
+-  if (GLRO (dl_hwcap) & HWCAP_VFP)
++  if (GLRO (dl_hwcap) & HWCAP_ARM_VFP)
+     {
+       unsigned long int temp;
+ 
+diff --git a/sysdeps/arm/eabi/fesetenv.c b/sysdeps/arm/eabi/fesetenv.c
+index bf253848bc..c47aa6582a 100644
+--- a/sysdeps/arm/eabi/fesetenv.c
++++ b/sysdeps/arm/eabi/fesetenv.c
+@@ -23,12 +23,12 @@
+ #include <unistd.h>
+ #include <ldsodefs.h>
+ #include <dl-procinfo.h>
+-#include <asm/procinfo.h>
++#include <sysdep.h>
+ 
+ int
+ __fesetenv (const fenv_t *envp)
+ {
+-  if (GLRO (dl_hwcap) & HWCAP_VFP)
++  if (GLRO (dl_hwcap) & HWCAP_ARM_VFP)
+     {
+       unsigned int temp;
+ 
+diff --git a/sysdeps/arm/eabi/fesetround.c b/sysdeps/arm/eabi/fesetround.c
+index f6e20cb72d..5523522822 100644
+--- a/sysdeps/arm/eabi/fesetround.c
++++ b/sysdeps/arm/eabi/fesetround.c
+@@ -23,12 +23,12 @@
+ #include <unistd.h>
+ #include <ldsodefs.h>
+ #include <dl-procinfo.h>
+-#include <asm/procinfo.h>
++#include <sysdep.h>
+ 
+ int
+ fesetround (int round)
+ {
+-  if (GLRO (dl_hwcap) & HWCAP_VFP)
++  if (GLRO (dl_hwcap) & HWCAP_ARM_VFP)
+     {
+       fpu_control_t temp;
+ 
+diff --git a/sysdeps/arm/eabi/fraiseexcpt.c b/sysdeps/arm/eabi/fraiseexcpt.c
+index c0ab419673..53ccd9d01f 100644
+--- a/sysdeps/arm/eabi/fraiseexcpt.c
++++ b/sysdeps/arm/eabi/fraiseexcpt.c
+@@ -24,12 +24,12 @@
+ #include <unistd.h>
+ #include <ldsodefs.h>
+ #include <dl-procinfo.h>
+-#include <asm/procinfo.h>
++#include <sysdep.h>
+ 
+ int
+ feraiseexcept (int excepts)
+ {
+-  if (GLRO (dl_hwcap) & HWCAP_VFP)
++  if (GLRO (dl_hwcap) & HWCAP_ARM_VFP)
+     {
+       int fpscr;
+       const float fp_zero = 0.0, fp_one = 1.0, fp_max = FLT_MAX,
+diff --git a/sysdeps/arm/eabi/fsetexcptflg.c b/sysdeps/arm/eabi/fsetexcptflg.c
+index e76d746196..2e05514f11 100644
+--- a/sysdeps/arm/eabi/fsetexcptflg.c
++++ b/sysdeps/arm/eabi/fsetexcptflg.c
+@@ -24,12 +24,12 @@
+ #include <unistd.h>
+ #include <ldsodefs.h>
+ #include <dl-procinfo.h>
+-#include <asm/procinfo.h>
++#include <sysdep.h>
+ 
+ int
+ __fesetexceptflag (const fexcept_t *flagp, int excepts)
+ {
+-  if (GLRO (dl_hwcap) & HWCAP_VFP)
++  if (GLRO (dl_hwcap) & HWCAP_ARM_VFP)
+     {
+       fexcept_t temp;
+ 
+diff --git a/sysdeps/arm/eabi/ftestexcept.c b/sysdeps/arm/eabi/ftestexcept.c
+index 230ccbdcec..846bb01956 100644
+--- a/sysdeps/arm/eabi/ftestexcept.c
++++ b/sysdeps/arm/eabi/ftestexcept.c
+@@ -23,12 +23,12 @@
+ #include <unistd.h>
+ #include <ldsodefs.h>
+ #include <dl-procinfo.h>
+-#include <asm/procinfo.h>
++#include <sysdep.h>
+ 
+ int
+ fetestexcept (int excepts)
+ {
+-  if (GLRO (dl_hwcap) & HWCAP_VFP)
++  if (GLRO (dl_hwcap) & HWCAP_ARM_VFP)
+     {
+       fexcept_t temp;
+ 
+diff --git a/sysdeps/arm/eabi/setfpucw.c b/sysdeps/arm/eabi/setfpucw.c
+index 2bd1f55619..cd680df6f9 100644
+--- a/sysdeps/arm/eabi/setfpucw.c
++++ b/sysdeps/arm/eabi/setfpucw.c
+@@ -23,12 +23,12 @@
+ #include <unistd.h>
+ #include <ldsodefs.h>
+ #include <dl-procinfo.h>
+-#include <asm/procinfo.h>
++#include <sysdep.h>
+ 
+ void
+ __setfpucw (fpu_control_t set)
+ {
+-  if (GLRO (dl_hwcap) & HWCAP_VFP)
++  if (GLRO (dl_hwcap) & HWCAP_ARM_VFP)
+     {
+       fpu_control_t cw;
+ 

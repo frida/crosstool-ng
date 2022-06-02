@@ -1,0 +1,278 @@
+From ccee2a9f58569f91f738b784bfece996f5e2991f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ole=20Andr=C3=A9=20Vadla=20Ravn=C3=A5s?= <oleavr@gmail.com>
+Date: Mon, 12 Sep 2022 16:55:48 +0000
+Subject: [PATCH] linux: Fix prototypes of vmsplice(), splice(), and tee()
+
+Backport of:
+
+    57ba32a810df29d2a3f45ffc2d1c1f6170a5a9f7
+    883f7943f242c174c49bc82d51fe8332ad50d573
+---
+ sysdeps/unix/sysv/linux/alpha/bits/fcntl.h   | 14 +++++++-------
+ sysdeps/unix/sysv/linux/i386/bits/fcntl.h    | 14 +++++++-------
+ sysdeps/unix/sysv/linux/ia64/bits/fcntl.h    | 14 +++++++-------
+ sysdeps/unix/sysv/linux/powerpc/bits/fcntl.h | 14 +++++++-------
+ sysdeps/unix/sysv/linux/s390/bits/fcntl.h    | 14 +++++++-------
+ sysdeps/unix/sysv/linux/sh/bits/fcntl.h      | 14 +++++++-------
+ sysdeps/unix/sysv/linux/sparc/bits/fcntl.h   | 14 +++++++-------
+ sysdeps/unix/sysv/linux/syscalls.list        |  6 +++---
+ sysdeps/unix/sysv/linux/x86_64/bits/fcntl.h  | 14 +++++++-------
+ 9 files changed, 59 insertions(+), 59 deletions(-)
+
+diff --git a/sysdeps/unix/sysv/linux/alpha/bits/fcntl.h b/sysdeps/unix/sysv/linux/alpha/bits/fcntl.h
+index f17dc2b..23b30ef 100644
+--- a/sysdeps/unix/sysv/linux/alpha/bits/fcntl.h
++++ b/sysdeps/unix/sysv/linux/alpha/bits/fcntl.h
+@@ -212,17 +212,17 @@ extern int sync_file_range (int __fd, __off64_t __from, __off64_t __to,
+ 
+ 
+ /* Splice address range into a pipe.  */
+-extern int vmsplice (int __fdout, const struct iovec *__iov, size_t __count,
+-		     unsigned int __flags);
++extern ssize_t vmsplice (int __fdout, const struct iovec *__iov,
++			 size_t __count, unsigned int __flags);
+ 
+ /* Splice two files together.  */
+-extern int splice (int __fdin, __off64_t *__offin, int __fdout,
+-		   __off64_t *__offout, size_t __len, unsigned int __flags)
+-    __THROW;
++extern ssize_t splice (int __fdin, __off64_t *__offin, int __fdout,
++		       __off64_t *__offout, size_t __len,
++		       unsigned int __flags);
+ 
+ /* In-kernel implementation of tee for pipe buffers.  */
+-extern int tee (int __fdin, int __fdout, size_t __len, unsigned int __flags)
+-    __THROW;
++extern ssize_t tee (int __fdin, int __fdout, size_t __len,
++		    unsigned int __flags);
+ 
+ #endif
+ 
+diff --git a/sysdeps/unix/sysv/linux/i386/bits/fcntl.h b/sysdeps/unix/sysv/linux/i386/bits/fcntl.h
+index 6de3330..34b998a 100644
+--- a/sysdeps/unix/sysv/linux/i386/bits/fcntl.h
++++ b/sysdeps/unix/sysv/linux/i386/bits/fcntl.h
+@@ -220,17 +220,17 @@ extern int sync_file_range (int __fd, __off64_t __from, __off64_t __to,
+ 
+ 
+ /* Splice address range into a pipe.  */
+-extern int vmsplice (int __fdout, const struct iovec *__iov, size_t __count,
+-		     unsigned int __flags);
++extern ssize_t vmsplice (int __fdout, const struct iovec *__iov,
++			 size_t __count, unsigned int __flags);
+ 
+ /* Splice two files together.  */
+-extern int splice (int __fdin, __off64_t *__offin, int __fdout,
+-		   __off64_t *__offout, size_t __len, unsigned int __flags)
+-    __THROW;
++extern ssize_t splice (int __fdin, __off64_t *__offin, int __fdout,
++		       __off64_t *__offout, size_t __len,
++		       unsigned int __flags);
+ 
+ /* In-kernel implementation of tee for pipe buffers.  */
+-extern int tee (int __fdin, int __fdout, size_t __len, unsigned int __flags)
+-    __THROW;
++extern ssize_t tee (int __fdin, int __fdout, size_t __len,
++		    unsigned int __flags);
+ 
+ #endif
+ 
+diff --git a/sysdeps/unix/sysv/linux/ia64/bits/fcntl.h b/sysdeps/unix/sysv/linux/ia64/bits/fcntl.h
+index ed8c2da..87fe1f9 100644
+--- a/sysdeps/unix/sysv/linux/ia64/bits/fcntl.h
++++ b/sysdeps/unix/sysv/linux/ia64/bits/fcntl.h
+@@ -214,17 +214,17 @@ extern int sync_file_range (int __fd, __off64_t __from, __off64_t __to,
+ 
+ 
+ /* Splice address range into a pipe.  */
+-extern int vmsplice (int __fdout, const struct iovec *__iov, size_t __count,
+-		     unsigned int __flags);
++extern ssize_t vmsplice (int __fdout, const struct iovec *__iov,
++			 size_t __count, unsigned int __flags);
+ 
+ /* Splice two files together.  */
+-extern int splice (int __fdin, __off64_t *__offin, int __fdout,
+-		   __off64_t *__offout, size_t __len, unsigned int __flags)
+-    __THROW;
++extern ssize_t splice (int __fdin, __off64_t *__offin, int __fdout,
++		       __off64_t *__offout, size_t __len,
++		       unsigned int __flags);
+ 
+ /* In-kernel implementation of tee for pipe buffers.  */
+-extern int tee (int __fdin, int __fdout, size_t __len, unsigned int __flags)
+-    __THROW;
++extern ssize_t tee (int __fdin, int __fdout, size_t __len,
++		    unsigned int __flags);
+ 
+ #endif
+ 
+diff --git a/sysdeps/unix/sysv/linux/powerpc/bits/fcntl.h b/sysdeps/unix/sysv/linux/powerpc/bits/fcntl.h
+index c4964e0..d3f4d6c 100644
+--- a/sysdeps/unix/sysv/linux/powerpc/bits/fcntl.h
++++ b/sysdeps/unix/sysv/linux/powerpc/bits/fcntl.h
+@@ -220,17 +220,17 @@ extern int sync_file_range (int __fd, __off64_t __from, __off64_t __to,
+ 
+ 
+ /* Splice address range into a pipe.  */
+-extern int vmsplice (int __fdout, const struct iovec *__iov, size_t __count,
+-		     unsigned int __flags);
++extern ssize_t vmsplice (int __fdout, const struct iovec *__iov,
++			 size_t __count, unsigned int __flags);
+ 
+ /* Splice two files together.  */
+-extern int splice (int __fdin, __off64_t *__offin, int __fdout,
+-		   __off64_t *__offout, size_t __len, unsigned int __flags)
+-    __THROW;
++extern ssize_t splice (int __fdin, __off64_t *__offin, int __fdout,
++		       __off64_t *__offout, size_t __len,
++		       unsigned int __flags);
+ 
+ /* In-kernel implementation of tee for pipe buffers.  */
+-extern int tee (int __fdin, int __fdout, size_t __len, unsigned int __flags)
+-    __THROW;
++extern ssize_t tee (int __fdin, int __fdout, size_t __len,
++		    unsigned int __flags);
+ 
+ #endif
+ 
+diff --git a/sysdeps/unix/sysv/linux/s390/bits/fcntl.h b/sysdeps/unix/sysv/linux/s390/bits/fcntl.h
+index c611028..78eafc1 100644
+--- a/sysdeps/unix/sysv/linux/s390/bits/fcntl.h
++++ b/sysdeps/unix/sysv/linux/s390/bits/fcntl.h
+@@ -240,17 +240,17 @@ extern int sync_file_range (int __fd, __off64_t __from, __off64_t __to,
+ 
+ 
+ /* Splice address range into a pipe.  */
+-extern int vmsplice (int __fdout, const struct iovec *__iov, size_t __count,
+-		     unsigned int __flags);
++extern ssize_t vmsplice (int __fdout, const struct iovec *__iov,
++			 size_t __count, unsigned int __flags);
+ 
+ /* Splice two files together.  */
+-extern int splice (int __fdin, __off64_t *__offin, int __fdout,
+-		   __off64_t *__offout, size_t __len, unsigned int __flags)
+-    __THROW;
++extern ssize_t splice (int __fdin, __off64_t *__offin, int __fdout,
++		       __off64_t *__offout, size_t __len,
++		       unsigned int __flags);
+ 
+ /* In-kernel implementation of tee for pipe buffers.  */
+-extern int tee (int __fdin, int __fdout, size_t __len, unsigned int __flags)
+-    __THROW;
++extern ssize_t tee (int __fdin, int __fdout, size_t __len,
++		    unsigned int __flags);
+ 
+ #endif
+ 
+diff --git a/sysdeps/unix/sysv/linux/sh/bits/fcntl.h b/sysdeps/unix/sysv/linux/sh/bits/fcntl.h
+index 6de3330..34b998a 100644
+--- a/sysdeps/unix/sysv/linux/sh/bits/fcntl.h
++++ b/sysdeps/unix/sysv/linux/sh/bits/fcntl.h
+@@ -220,17 +220,17 @@ extern int sync_file_range (int __fd, __off64_t __from, __off64_t __to,
+ 
+ 
+ /* Splice address range into a pipe.  */
+-extern int vmsplice (int __fdout, const struct iovec *__iov, size_t __count,
+-		     unsigned int __flags);
++extern ssize_t vmsplice (int __fdout, const struct iovec *__iov,
++			 size_t __count, unsigned int __flags);
+ 
+ /* Splice two files together.  */
+-extern int splice (int __fdin, __off64_t *__offin, int __fdout,
+-		   __off64_t *__offout, size_t __len, unsigned int __flags)
+-    __THROW;
++extern ssize_t splice (int __fdin, __off64_t *__offin, int __fdout,
++		       __off64_t *__offout, size_t __len,
++		       unsigned int __flags);
+ 
+ /* In-kernel implementation of tee for pipe buffers.  */
+-extern int tee (int __fdin, int __fdout, size_t __len, unsigned int __flags)
+-    __THROW;
++extern ssize_t tee (int __fdin, int __fdout, size_t __len,
++		    unsigned int __flags);
+ 
+ #endif
+ 
+diff --git a/sysdeps/unix/sysv/linux/sparc/bits/fcntl.h b/sysdeps/unix/sysv/linux/sparc/bits/fcntl.h
+index d68bfeb..3523fcf 100644
+--- a/sysdeps/unix/sysv/linux/sparc/bits/fcntl.h
++++ b/sysdeps/unix/sysv/linux/sparc/bits/fcntl.h
+@@ -239,17 +239,17 @@ extern int sync_file_range (int __fd, __off64_t __from, __off64_t __to,
+ 
+ 
+ /* Splice address range into a pipe.  */
+-extern int vmsplice (int __fdout, const struct iovec *__iov, size_t __count,
+-		     unsigned int __flags);
++extern ssize_t vmsplice (int __fdout, const struct iovec *__iov,
++			 size_t __count, unsigned int __flags);
+ 
+ /* Splice two files together.  */
+-extern int splice (int __fdin, __off64_t *__offin, int __fdout,
+-		   __off64_t *__offout, size_t __len, unsigned int __flags)
+-    __THROW;
++extern ssize_t splice (int __fdin, __off64_t *__offin, int __fdout,
++		       __off64_t *__offout, size_t __len,
++		       unsigned int __flags);
+ 
+ /* In-kernel implementation of tee for pipe buffers.  */
+-extern int tee (int __fdin, int __fdout, size_t __len, unsigned int __flags)
+-    __THROW;
++extern ssize_t tee (int __fdin, int __fdout, size_t __len,
++		    unsigned int __flags);
+ 
+ #endif
+ 
+diff --git a/sysdeps/unix/sysv/linux/syscalls.list b/sysdeps/unix/sysv/linux/syscalls.list
+index fca29b2..24b0121 100644
+--- a/sysdeps/unix/sysv/linux/syscalls.list
++++ b/sysdeps/unix/sysv/linux/syscalls.list
+@@ -67,14 +67,14 @@ setfsgid	EXTRA	setfsgid	i:i	setfsgid
+ setfsuid	EXTRA	setfsuid	i:i	setfsuid
+ setpgid		-	setpgid		i:ii	__setpgid	setpgid
+ sigaltstack	-	sigaltstack	i:PP	__sigaltstack	sigaltstack
+-splice		EXTRA	splice		i:iPiPii	splice
++splice		EXTRA	splice		Ci:iPiPii	splice
+ sysinfo		EXTRA	sysinfo		i:p	sysinfo
+ swapon		-	swapon		i:si	__swapon	swapon
+ swapoff		-	swapoff		i:s	__swapoff	swapoff
+-tee		EXTRA	tee		i:iiii	tee
++tee		EXTRA	tee		Ci:iiii	tee
+ unshare		EXTRA	unshare		i:i	unshare
+ uselib		EXTRA	uselib		i:s	uselib
+-vmsplice	EXTRA	vmsplice	i:iPii	vmsplice
++vmsplice	EXTRA	vmsplice	Ci:iPii	vmsplice
+ wait4		-	wait4		i:iWiP	__wait4		wait4
+ 
+ chown		-	chown		i:sii	__libc_chown	__chown chown
+diff --git a/sysdeps/unix/sysv/linux/x86_64/bits/fcntl.h b/sysdeps/unix/sysv/linux/x86_64/bits/fcntl.h
+index fa1d02b..9d3a6d3 100644
+--- a/sysdeps/unix/sysv/linux/x86_64/bits/fcntl.h
++++ b/sysdeps/unix/sysv/linux/x86_64/bits/fcntl.h
+@@ -234,17 +234,17 @@ extern int sync_file_range (int __fd, __off64_t __from, __off64_t __to,
+ 
+ 
+ /* Splice address range into a pipe.  */
+-extern int vmsplice (int __fdout, const struct iovec *__iov, size_t __count,
+-		     unsigned int __flags);
++extern ssize_t vmsplice (int __fdout, const struct iovec *__iov,
++			 size_t __count, unsigned int __flags);
+ 
+ /* Splice two files together.  */
+-extern int splice (int __fdin, __off64_t *__offin, int __fdout,
+-		   __off64_t *__offout, size_t __len, unsigned int __flags)
+-    __THROW;
++extern ssize_t splice (int __fdin, __off64_t *__offin, int __fdout,
++		       __off64_t *__offout, size_t __len,
++		       unsigned int __flags);
+ 
+ /* In-kernel implementation of tee for pipe buffers.  */
+-extern int tee (int __fdin, int __fdout, size_t __len, unsigned int __flags)
+-    __THROW;
++extern ssize_t tee (int __fdin, int __fdout, size_t __len,
++		    unsigned int __flags);
+ 
+ #endif
+ 
+-- 
+2.34.1
+

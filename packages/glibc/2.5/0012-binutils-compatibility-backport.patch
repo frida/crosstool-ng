@@ -1,0 +1,261 @@
+From fac18c8b15badb654dcd52773a5c481cb1d41964 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ole=20Andr=C3=A9=20Vadla=20Ravn=C3=A5s?= <oleavr@gmail.com>
+Date: Mon, 12 Sep 2022 09:24:28 +0000
+Subject: Fix compatibility with binutils >= 2.22
+
+By dropping support for older binutils, like upstream has already done.
+---
+ Makerules                              |  3 +-
+ elf/Makefile                           |  2 +-
+ elf/sofini.c                           | 10 ------
+ elf/soinit.c                           | 46 --------------------------
+ include/libc-internal.h                |  3 --
+ sysdeps/i386/init-first.c              |  3 --
+ sysdeps/mach/hurd/alpha/init-first.c   |  5 ---
+ sysdeps/mach/hurd/i386/init-first.c    |  5 ---
+ sysdeps/mach/hurd/powerpc/init-first.c |  5 ---
+ sysdeps/sh/init-first.c                |  3 --
+ sysdeps/unix/sysv/linux/init-first.c   |  4 ---
+ 11 files changed, 2 insertions(+), 87 deletions(-)
+ delete mode 100644 elf/soinit.c
+
+diff --git a/Makerules b/Makerules
+index b0be86b..a749c71 100644
+--- a/Makerules
++++ b/Makerules
+@@ -612,8 +612,7 @@ $(common-objpfx)libc_pic.os: $(common-objpfx)libc_pic.a
+ 	$(LINK.o) -nostdlib -nostartfiles -r -o $@ \
+ 	$(LDFLAGS-c_pic.os) -Wl,-d -Wl,--whole-archive $^
+ # Use our own special initializer and finalizer files for libc.so.
+-$(common-objpfx)libc.so: $(elfobjdir)/soinit.os \
+-			 $(common-objpfx)libc_pic.os \
++$(common-objpfx)libc.so: $(common-objpfx)libc_pic.os \
+ 			 $(elfobjdir)/sofini.os \
+ 			 $(elfobjdir)/interp.os $(elfobjdir)/ld.so \
+ 			 $(common-objpfx)shlib.lds
+diff --git a/elf/Makefile b/elf/Makefile
+index 38d1239..b305068 100644
+--- a/elf/Makefile
++++ b/elf/Makefile
+@@ -114,7 +114,7 @@ ld-map		= $(common-objpfx)ld.map
+ endif
+ 
+ ifeq (yes,$(build-shared))
+-extra-objs	= $(all-rtld-routines:%=%.os) soinit.os sofini.os interp.os
++extra-objs	= $(all-rtld-routines:%=%.os) sofini.os interp.os
+ generated	+= librtld.os dl-allobjs.os ld.so ldd
+ install-others	= $(inst_slibdir)/$(rtld-installed-name)
+ install-bin-script = ldd
+diff --git a/elf/sofini.c b/elf/sofini.c
+index 5e06f0c..1c526fd 100644
+--- a/elf/sofini.c
++++ b/elf/sofini.c
+@@ -1,13 +1,3 @@
+-/* Finalizer module for ELF shared C library.  This provides terminating
+-   null pointer words in the `.ctors' and `.dtors' sections.  */
+-
+-static void (*const __CTOR_END__[1]) (void)
+-     __attribute__ ((used, section (".ctors")))
+-     = { 0 };
+-static void (*const __DTOR_END__[1]) (void)
+-     __attribute__ ((used, section (".dtors")))
+-     = { 0 };
+-
+ /* Terminate the frame unwind info section with a 4byte 0 as a sentinel;
+    this would be the 'length' field in a real FDE.  */
+ 
+diff --git a/elf/soinit.c b/elf/soinit.c
+deleted file mode 100644
+index c0a881e..0000000
+--- a/elf/soinit.c
++++ /dev/null
+@@ -1,46 +0,0 @@
+-/* Initializer module for building the ELF shared C library.  This file and
+-   sofini.c do the work normally done by crtbeginS.o and crtendS.o, to wrap
+-   the `.ctors' and `.dtors' sections so the lists are terminated, and
+-   calling those lists of functions.  */
+-
+-#include <libc-internal.h>
+-#include <stdlib.h>
+-
+-static void (*const __CTOR_LIST__[1]) (void)
+-     __attribute__ ((section (".ctors")))
+-     = { (void (*) (void)) -1 };
+-static void (*const __DTOR_LIST__[1]) (void)
+-     __attribute__ ((section (".dtors")))
+-     = { (void (*) (void)) -1 };
+-
+-static inline void
+-run_hooks (void (*const list[]) (void))
+-{
+-  while (*++list)
+-    (**list) ();
+-}
+-
+-static const char __EH_FRAME_BEGIN__[]
+-  __attribute__ ((used, section (".eh_frame")))
+-  = { };
+-
+-/* This function will be called from _init in init-first.c.  */
+-void
+-__libc_global_ctors (void)
+-{
+-  /* Call constructor functions.  */
+-  run_hooks (__CTOR_LIST__);
+-}
+-
+-
+-/* This function becomes the DT_FINI termination function
+-   for the C library.  */
+-void
+-__libc_fini (void)
+-{
+-  /* Call destructor functions.  */
+-  run_hooks (__DTOR_LIST__);
+-}
+-
+-void (*_fini_ptr) (void) __attribute__ ((section (".fini_array")))
+-     = &__libc_fini;
+diff --git a/include/libc-internal.h b/include/libc-internal.h
+index e5fd533..691c1fe 100644
+--- a/include/libc-internal.h
++++ b/include/libc-internal.h
+@@ -9,9 +9,6 @@
+ /* Initialize the `__libc_enable_secure' flag.  */
+ extern void __libc_init_secure (void);
+ 
+-/* This function will be called from _init in init-first.c.  */
+-extern void __libc_global_ctors (void);
+-
+ /* Discover the tick frequency of the machine if something goes wrong,
+    we return 0, an impossible hertz.  */
+ extern int __profile_frequency (void);
+diff --git a/sysdeps/i386/init-first.c b/sysdeps/i386/init-first.c
+index c6355a8..84b9c20 100644
+--- a/sysdeps/i386/init-first.c
++++ b/sysdeps/i386/init-first.c
+@@ -23,7 +23,6 @@ extern void __libc_init (int, char **, char **);
+ #ifdef USE_NONOPTION_FLAGS
+ extern void __getopt_clean_environment (char **);
+ #endif
+-extern void __libc_global_ctors (void);
+ 
+ int __libc_multiple_libcs attribute_hidden = 1;
+ 
+@@ -58,8 +57,6 @@ void
+ _init (int argc, ...)
+ {
+   init (&argc);
+-
+-  __libc_global_ctors ();
+ }
+ #endif
+ 
+diff --git a/sysdeps/mach/hurd/alpha/init-first.c b/sysdeps/mach/hurd/alpha/init-first.c
+index 6e55225..4aa8824 100644
+--- a/sysdeps/mach/hurd/alpha/init-first.c
++++ b/sysdeps/mach/hurd/alpha/init-first.c
+@@ -35,7 +35,6 @@ extern void __getopt_clean_environment (char **);
+ #ifndef SHARED
+ extern void _dl_non_dynamic_init (void) internal_function;
+ #endif
+-extern void __libc_global_ctors (void);
+ 
+ unsigned int __hurd_threadvar_max;
+ unsigned long int __hurd_threadvar_stack_offset;
+@@ -76,10 +75,6 @@ posixland_init (int argc, char **argv, char **envp)
+   /* This is a hack to make the special getopt in GNU libc working.  */
+   __getopt_clean_environment (envp);
+ #endif
+-
+-#ifdef SHARED
+-  __libc_global_ctors ();
+-#endif
+ }
+ 
+ 
+diff --git a/sysdeps/mach/hurd/i386/init-first.c b/sysdeps/mach/hurd/i386/init-first.c
+index f9a7a58..5c5f7db 100644
+--- a/sysdeps/mach/hurd/i386/init-first.c
++++ b/sysdeps/mach/hurd/i386/init-first.c
+@@ -40,7 +40,6 @@ extern void __getopt_clean_environment (char **);
+ #ifndef SHARED
+ extern void _dl_non_dynamic_init (void) internal_function;
+ #endif
+-extern void __libc_global_ctors (void);
+ 
+ unsigned int __hurd_threadvar_max;
+ unsigned long int __hurd_threadvar_stack_offset;
+@@ -91,10 +90,6 @@ posixland_init (int argc, char **argv, char **envp)
+   /* This is a hack to make the special getopt in GNU libc working.  */
+   __getopt_clean_environment (envp);
+ #endif
+-
+-#ifdef SHARED
+-  __libc_global_ctors ();
+-#endif
+ }
+ 
+ 
+diff --git a/sysdeps/mach/hurd/powerpc/init-first.c b/sysdeps/mach/hurd/powerpc/init-first.c
+index 20fa1d4..0acae82 100644
+--- a/sysdeps/mach/hurd/powerpc/init-first.c
++++ b/sysdeps/mach/hurd/powerpc/init-first.c
+@@ -35,7 +35,6 @@ extern void __getopt_clean_environment (char **);
+ #ifndef SHARED
+ extern void _dl_non_dynamic_init (void) internal_function;
+ #endif
+-extern void __libc_global_ctors (void);
+ 
+ unsigned int __hurd_threadvar_max;
+ unsigned long int __hurd_threadvar_stack_offset;
+@@ -81,10 +80,6 @@ posixland_init (int argc, char **argv, char **envp)
+   /* This is a hack to make the special getopt in GNU libc working.  */
+   __getopt_clean_environment (__environ);
+ #endif
+-
+-#ifdef SHARED
+-  __libc_global_ctors ();
+-#endif
+ }
+ 
+ 
+diff --git a/sysdeps/sh/init-first.c b/sysdeps/sh/init-first.c
+index d816625..d3a6512 100644
+--- a/sysdeps/sh/init-first.c
++++ b/sysdeps/sh/init-first.c
+@@ -23,7 +23,6 @@ extern void __libc_init (int, char **, char **);
+ #ifdef USE_NONOPTION_FLAGS
+ extern void __getopt_clean_environment (char **);
+ #endif
+-extern void __libc_global_ctors (void);
+ 
+ int __libc_multiple_libcs attribute_hidden = 1;
+ 
+@@ -58,8 +57,6 @@ void
+ _init (int argc, ...)
+ {
+   init (&argc);
+-
+-  __libc_global_ctors ();
+ }
+ #endif
+ 
+diff --git a/sysdeps/unix/sysv/linux/init-first.c b/sysdeps/unix/sysv/linux/init-first.c
+index b061a84..6b0ca4e 100644
+--- a/sysdeps/unix/sysv/linux/init-first.c
++++ b/sysdeps/unix/sysv/linux/init-first.c
+@@ -88,10 +88,6 @@ _init (int argc, char **argv, char **envp)
+   /* This is a hack to make the special getopt in GNU libc working.  */
+   __getopt_clean_environment (envp);
+ #endif
+-
+-#ifdef SHARED
+-  __libc_global_ctors ();
+-#endif
+ }
+ 
+ 
+-- 
+2.34.1
+

@@ -1,0 +1,51 @@
+From dccab8c1497c09ba25a0eba823f29564854b2cd9 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ole=20Andr=C3=A9=20Vadla=20Ravn=C3=A5s?= <oleavr@gmail.com>
+Date: Mon, 12 Sep 2022 09:24:32 +0000
+Subject: ARM: Set HAVE_ARM_PCS_VFP if hard-float ABI is being used
+
+Hacky backport of d3b36017d43af570ca7f79e711749dd4ade76979.
+---
+ config.h.in |  3 +++
+ configure   | 12 ++++++++++++
+ 2 files changed, 15 insertions(+)
+
+diff --git a/config.h.in b/config.h.in
+index da973f6..8fcd0ad 100644
+--- a/config.h.in
++++ b/config.h.in
+@@ -22,6 +22,9 @@
+ /* Define if using XCOFF. Set by --with-xcoff.  */
+ #undef	HAVE_XCOFF
+ 
++/* Define if the compiler is using the ARM hard-float ABI.  */
++#undef	HAVE_ARM_PCS_VFP
++
+ /* Define if C symbols are asm symbols.  Don't define if C symbols
+    have a `_' prepended to make the asm symbol.  */
+ #undef	NO_UNDERSCORES
+diff --git a/configure b/configure
+index 3763c40..be9f7f9 100755
+--- a/configure
++++ b/configure
+@@ -7745,6 +7745,18 @@ _ACEOF
+ 
+ fi
+ 
++cat >conftest.$ac_ext <<_ACEOF
++#ifdef __ARM_PCS_VFP
++ yes
++#endif
++_ACEOF
++if (eval "$ac_cpp conftest.$ac_ext") 2>&5 | $EGREP "yes" >/dev/null 2>&1; then
++  cat >>confdefs.h <<\_ACEOF
++#define HAVE_ARM_PCS_VFP 1
++_ACEOF
++fi
++rm -f conftest*
++
+ 
+ 
+ if test $shared = default; then
+-- 
+2.34.1
+
