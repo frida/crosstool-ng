@@ -1,0 +1,85 @@
+diff -Nur glibc-2.5-orig/math/math_private.h glibc-2.5/math/math_private.h
+--- glibc-2.5-orig/math/math_private.h	2005-11-21 16:43:03.000000000 +0100
++++ glibc-2.5/math/math_private.h	2022-06-01 13:13:29.575771094 +0200
+@@ -191,11 +191,6 @@
+ /* internal functions.  */
+ extern double __copysign (double x, double __y);
+ 
+-#if __GNUC_PREREQ (4, 0)
+-extern inline double __copysign (double x, double y)
+-{ return __builtin_copysign (x, y); }
+-#endif
+-
+ /* ieee style elementary float functions */
+ extern float __ieee754_sqrtf (float);
+ extern float __ieee754_acosf (float);
+@@ -238,11 +233,6 @@
+ /* internal functions.  */
+ extern float __copysignf (float x, float __y);
+ 
+-#if __GNUC_PREREQ (4, 0)
+-extern inline float __copysignf (float x, float y)
+-{ return __builtin_copysignf (x, y); }
+-#endif
+-
+ /* ieee style elementary long double functions */
+ extern long double __ieee754_sqrtl (long double);
+ extern long double __ieee754_acosl (long double);
+diff -Nur glibc-2.5-orig/sysdeps/ieee754/dbl-64/s_copysign.c glibc-2.5/sysdeps/ieee754/dbl-64/s_copysign.c
+--- glibc-2.5-orig/sysdeps/ieee754/dbl-64/s_copysign.c	1999-07-14 01:51:30.000000000 +0200
++++ glibc-2.5/sysdeps/ieee754/dbl-64/s_copysign.c	2022-06-01 13:13:08.612505443 +0200
+@@ -23,18 +23,10 @@
+ #include "math.h"
+ #include "math_private.h"
+ 
+-#ifdef __STDC__
+-	double __copysign(double x, double y)
+-#else
+-	double __copysign(x,y)
+-	double x,y;
+-#endif
++double
++__copysign (double x, double y)
+ {
+-	u_int32_t hx,hy;
+-	GET_HIGH_WORD(hx,x);
+-	GET_HIGH_WORD(hy,y);
+-	SET_HIGH_WORD(x,(hx&0x7fffffff)|(hy&0x80000000));
+-        return x;
++  return __builtin_copysign (x, y);
+ }
+ weak_alias (__copysign, copysign)
+ #ifdef NO_LONG_DOUBLE
+diff -Nur glibc-2.5-orig/sysdeps/ieee754/dbl-64/s_modf.c glibc-2.5/sysdeps/ieee754/dbl-64/s_modf.c
+--- glibc-2.5-orig/sysdeps/ieee754/dbl-64/s_modf.c	1999-07-14 01:52:59.000000000 +0200
++++ glibc-2.5/sysdeps/ieee754/dbl-64/s_modf.c	2022-06-01 13:18:16.772422127 +0200
+@@ -81,5 +81,4 @@
+ weak_alias (__modf, modf)
+ #ifdef NO_LONG_DOUBLE
+ strong_alias (__modf, __modfl)
+-weak_alias (__modf, modfl)
+ #endif
+diff -Nur glibc-2.5-orig/sysdeps/ieee754/flt-32/s_copysignf.c glibc-2.5/sysdeps/ieee754/flt-32/s_copysignf.c
+--- glibc-2.5-orig/sysdeps/ieee754/flt-32/s_copysignf.c	1999-07-14 02:00:43.000000000 +0200
++++ glibc-2.5/sysdeps/ieee754/flt-32/s_copysignf.c	2022-06-01 13:12:44.800203691 +0200
+@@ -26,17 +26,9 @@
+ #include "math.h"
+ #include "math_private.h"
+ 
+-#ifdef __STDC__
+-	float __copysignf(float x, float y)
+-#else
+-	float __copysignf(x,y)
+-	float x,y;
+-#endif
++float
++__copysignf (float x, float y)
+ {
+-	u_int32_t ix,iy;
+-	GET_FLOAT_WORD(ix,x);
+-	GET_FLOAT_WORD(iy,y);
+-	SET_FLOAT_WORD(x,(ix&0x7fffffff)|(iy&0x80000000));
+-        return x;
++  return __builtin_copysignf (x, y);
+ }
+ weak_alias (__copysignf, copysignf)

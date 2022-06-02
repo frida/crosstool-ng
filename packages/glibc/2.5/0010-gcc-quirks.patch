@@ -1,0 +1,47 @@
+diff -Nur glibc-2.5-orig/csu/Makefile glibc-2.5/csu/Makefile
+--- glibc-2.5-orig/csu/Makefile	2006-03-01 10:35:47.000000000 +0000
++++ glibc-2.5/csu/Makefile	2022-09-08 21:27:40.126110022 +0000
+@@ -106,12 +106,12 @@
+ $(objpfx)crti.S: $(objpfx)initfini.s
+ 	sed -n -e '1,/@HEADER_ENDS/p' \
+ 	       -e '/@_.*_PROLOG_BEGINS/,/@_.*_PROLOG_ENDS/p' \
+-	       -e '/@TRAILER_BEGINS/,$$p' $< > $@
++	       -e '/@TRAILER_BEGINS/,$$p' $< | grep -v ".cfi_" > $@
+ 
+ $(objpfx)crtn.S: $(objpfx)initfini.s
+ 	sed -n -e '1,/@HEADER_ENDS/p' \
+ 	       -e '/@_.*_EPILOG_BEGINS/,/@_.*_EPILOG_ENDS/p' \
+-	       -e '/@TRAILER_BEGINS/,$$p' $< > $@
++	       -e '/@TRAILER_BEGINS/,$$p' $< | grep -v ".cfi_" > $@
+ 
+ # These explicit rules are necessary when the $(objpfx) subdirectory
+ # did not exist at the time make considered the implicit rules using it.
+diff -Nur glibc-2.5-orig/nptl/Makefile glibc-2.5/nptl/Makefile
+--- glibc-2.5-orig/nptl/Makefile	2006-09-08 10:40:49.000000000 +0000
++++ glibc-2.5/nptl/Makefile	2022-09-08 21:55:29.208637543 +0000
+@@ -552,11 +552,11 @@
+ $(objpfx)crti.S: $(objpfx)pt-initfini.s
+ 	sed -n -e '1,/@HEADER_ENDS/p' \
+ 	       -e '/@_.*_PROLOG_BEGINS/,/@_.*_PROLOG_ENDS/p' \
+-	       -e '/@TRAILER_BEGINS/,$$p' $< > $@
++	       -e '/@TRAILER_BEGINS/,$$p' $< | grep -v ".cfi_" > $@
+ $(objpfx)crtn.S: $(objpfx)pt-initfini.s
+ 	sed -n -e '1,/@HEADER_ENDS/p' \
+ 	       -e '/@_.*_EPILOG_BEGINS/,/@_.*_EPILOG_ENDS/p' \
+-	       -e '/@TRAILER_BEGINS/,$$p' $< > $@
++	       -e '/@TRAILER_BEGINS/,$$p' $< | grep -v ".cfi_" > $@
+ 
+ $(objpfx)defs.h: $(objpfx)pt-initfini.s
+ 	sed -n -e '/@TESTS_BEGIN/,/@TESTS_END/p' $< | \
+diff -Nur glibc-2.5-orig/nptl/unwind.c glibc-2.5/nptl/unwind.c
+--- glibc-2.5-orig/nptl/unwind.c	2005-12-21 22:17:21.000000000 +0000
++++ glibc-2.5/nptl/unwind.c	2022-09-08 20:00:29.914459840 +0000
+@@ -125,7 +125,7 @@
+   /* This is not a catchable exception, so don't provide any details about
+      the exception type.  We do need to initialize the field though.  */
+   THREAD_SETMEM (self, exc.exception_class, 0);
+-  THREAD_SETMEM (self, exc.exception_cleanup, unwind_cleanup);
++  THREAD_SETMEM (self, exc.exception_cleanup, &unwind_cleanup);
+ 
+   _Unwind_ForcedUnwind (&self->exc, unwind_stop, ibuf);
+ #else

@@ -1,0 +1,20 @@
+diff -Nur glibc-2.5-orig/elf/Makefile glibc-2.5/elf/Makefile
+--- glibc-2.5-orig/elf/Makefile	2006-09-19 16:41:41.000000000 +0200
++++ glibc-2.5/elf/Makefile	2022-06-02 00:09:38.915593876 +0200
+@@ -304,13 +304,15 @@
+ 		  $(LDFLAGS-rtld) -Wl,-z,defs -Wl,--verbose 2>&1 |	\
+ 		  LC_ALL=C \
+ 		  sed -e '/^=========/,/^=========/!d;/^=========/d'	\
+-		      -e 's/\. = 0 + SIZEOF_HEADERS;/& _begin = . - SIZEOF_HEADERS;/' \
++		      -e 's/\. = .* + SIZEOF_HEADERS;/& _begin = . - SIZEOF_HEADERS;/' \
+ 		  > $@.lds
+ 	$(LINK.o) -nostdlib -nostartfiles -shared -o $@			\
+ 		  $(LDFLAGS-rtld) -Wl,-z,defs $(z-now-$(bind-now))	\
+ 		  $(filter-out $(map-file),$^) $(load-map-file)		\
+ 		  -Wl,-soname=$(rtld-installed-name) -T $@.lds
+ 	rm -f $@.lds
++	readelf -s $@ \
++	  | $(AWK) '($$7 ~ /^UND(|EF)$$/ && $$1 != "0:" && $$4 != "REGISTER") { print; p=1 } END { exit p != 0 }'
+ 
+ # interp.c exists just to get this string into the libraries.
+ CFLAGS-interp.c = -D'RUNTIME_LINKER="$(slibdir)/$(rtld-installed-name)"' \

@@ -1,0 +1,1283 @@
+diff -Nur glibc-2.5-orig/argp/argp.h glibc-2.5/argp/argp.h
+--- glibc-2.5-orig/argp/argp.h	2006-04-22 17:08:26.000000000 +0200
++++ glibc-2.5/argp/argp.h	2022-06-01 22:04:54.886382943 +0200
+@@ -558,7 +558,7 @@
+ # endif
+ 
+ # ifndef ARGP_EI
+-#  define ARGP_EI extern __inline__
++#  define ARGP_EI extern __inline __attribute__ ((__gnu_inline__))
+ # endif
+ 
+ ARGP_EI void
+diff -Nur glibc-2.5-orig/bits/mathinline.h glibc-2.5/bits/mathinline.h
+--- glibc-2.5-orig/bits/mathinline.h	1997-10-13 05:53:18.000000000 +0200
++++ glibc-2.5/bits/mathinline.h	2022-06-01 22:04:54.926383452 +0200
+@@ -1,6 +1,6 @@
+ /* This file should provide inline versions of math functions.
+ 
+-   Surround GCC-specific parts with #ifdef __GNUC__, and use `extern __inline'.
++   Surround GCC-specific parts with #ifdef __GNUC__, and use `extern __inline __attribute__ ((__gnu_inline__))'.
+ 
+    This file should define __MATH_INLINES if functions are actually defined as
+    inlines.  */
+diff -Nur glibc-2.5-orig/bits/sigset.h glibc-2.5/bits/sigset.h
+--- glibc-2.5-orig/bits/sigset.h	2001-07-06 06:55:50.000000000 +0200
++++ glibc-2.5/bits/sigset.h	2022-06-01 22:04:54.939383618 +0200
+@@ -38,7 +38,7 @@
+ #define _SIGSET_H_fns 1
+ 
+ #ifndef _EXTERN_INLINE
+-# define _EXTERN_INLINE extern __inline
++# define _EXTERN_INLINE extern __inline __attribute__ ((__gnu_inline__))
+ #endif
+ 
+ /* Return a mask that includes SIG only.  The cast to `sigset_t' avoids
+diff -Nur glibc-2.5-orig/ctype/ctype.h glibc-2.5/ctype/ctype.h
+--- glibc-2.5-orig/ctype/ctype.h	2004-09-08 00:23:45.000000000 +0200
++++ glibc-2.5/ctype/ctype.h	2022-06-01 22:04:54.905383185 +0200
+@@ -187,13 +187,13 @@
+ # endif
+ 
+ # ifdef __USE_EXTERN_INLINES
+-extern __inline int
++extern __inline __attribute__ ((__gnu_inline__)) int
+ __NTH (tolower (int __c))
+ {
+   return __c >= -128 && __c < 256 ? (*__ctype_tolower_loc ())[__c] : __c;
+ }
+ 
+-extern __inline int
++extern __inline __attribute__ ((__gnu_inline__)) int
+ __NTH (toupper (int __c))
+ {
+   return __c >= -128 && __c < 256 ? (*__ctype_toupper_loc ())[__c] : __c;
+diff -Nur glibc-2.5-orig/include/ctype.h glibc-2.5/include/ctype.h
+--- glibc-2.5-orig/include/ctype.h	2004-03-16 11:09:04.000000000 +0100
++++ glibc-2.5/include/ctype.h	2022-06-01 22:04:54.904383172 +0200
+@@ -15,7 +15,7 @@
+ #  include <bits/libc-tsd.h>
+ 
+ #  ifndef CTYPE_EXTERN_INLINE	/* Used by ctype/ctype-info.c, which see.  */
+-#   define CTYPE_EXTERN_INLINE extern inline
++#   define CTYPE_EXTERN_INLINE extern __inline __attribute__ ((__gnu_inline__))
+ #  endif
+ 
+ __libc_tsd_define (extern, CTYPE_B)
+diff -Nur glibc-2.5-orig/include/features.h glibc-2.5/include/features.h
+--- glibc-2.5-orig/include/features.h	2006-04-25 22:34:32.000000000 +0200
++++ glibc-2.5/include/features.h	2022-06-01 22:04:54.910383248 +0200
+@@ -332,7 +332,7 @@
+ 
+ #endif	/* !ASSEMBLER */
+ 
+-/* Decide whether we can define 'extern inline' functions in headers.  */
++/* Decide whether we can define 'extern __inline __attribute__ ((__gnu_inline__))' functions in headers.  */
+ #if __GNUC_PREREQ (2, 7) && defined __OPTIMIZE__ \
+     && !defined __OPTIMIZE_SIZE__ && !defined __NO_INLINE__
+ # define __USE_EXTERN_INLINES	1
+diff -Nur glibc-2.5-orig/include/stdlib.h glibc-2.5/include/stdlib.h
+--- glibc-2.5-orig/include/stdlib.h	2006-01-14 13:08:56.000000000 +0100
++++ glibc-2.5/include/stdlib.h	2022-06-01 22:04:54.992384292 +0200
+@@ -139,43 +139,43 @@
+ libc_hidden_proto (____strtoul_l_internal)
+ libc_hidden_proto (____strtoull_l_internal)
+ 
+-extern __inline double
++extern __inline __attribute__ ((__gnu_inline__)) double
+ __NTH (__strtod_l (__const char *__restrict __nptr, char **__restrict __endptr,
+ 		   __locale_t __loc))
+ {
+   return ____strtod_l_internal (__nptr, __endptr, 0, __loc);
+ }
+-extern __inline long int
++extern __inline __attribute__ ((__gnu_inline__)) long int
+ __NTH (__strtol_l (__const char *__restrict __nptr, char **__restrict __endptr,
+ 		   int __base, __locale_t __loc))
+ {
+   return ____strtol_l_internal (__nptr, __endptr, __base, 0, __loc);
+ }
+-extern __inline unsigned long int
++extern __inline __attribute__ ((__gnu_inline__)) unsigned long int
+ __NTH (__strtoul_l (__const char *__restrict __nptr,
+ 		    char **__restrict __endptr, int __base, __locale_t __loc))
+ {
+   return ____strtoul_l_internal (__nptr, __endptr, __base, 0, __loc);
+ }
+-extern __inline float
++extern __inline __attribute__ ((__gnu_inline__)) float
+ __NTH (__strtof_l (__const char *__restrict __nptr, char **__restrict __endptr,
+ 		   __locale_t __loc))
+ {
+   return ____strtof_l_internal (__nptr, __endptr, 0, __loc);
+ }
+-extern __inline long double
++extern __inline __attribute__ ((__gnu_inline__)) long double
+ __NTH (__strtold_l (__const char *__restrict __nptr,
+ 		    char **__restrict __endptr, __locale_t __loc))
+ {
+   return ____strtold_l_internal (__nptr, __endptr, 0, __loc);
+ }
+-__extension__ extern __inline long long int
++__extension__ extern __inline __attribute__ ((__gnu_inline__)) long long int
+ __NTH (__strtoll_l (__const char *__restrict __nptr,
+ 		    char **__restrict __endptr, int __base, __locale_t __loc))
+ {
+   return ____strtoll_l_internal (__nptr, __endptr, __base, 0, __loc);
+ }
+-__extension__ extern __inline unsigned long long int
++__extension__ extern __inline __attribute__ ((__gnu_inline__)) unsigned long long int
+ __NTH (__strtoull_l (__const char * __restrict __nptr,
+ 		     char **__restrict __endptr, int __base, __locale_t __loc))
+ {
+diff -Nur glibc-2.5-orig/include/sys/stat.h glibc-2.5/include/sys/stat.h
+--- glibc-2.5-orig/include/sys/stat.h	2006-02-12 22:29:08.000000000 +0100
++++ glibc-2.5/include/sys/stat.h	2022-06-01 22:04:54.958383859 +0200
+@@ -19,12 +19,12 @@
+ hidden_proto (__xstat)
+ hidden_proto (__xstat64)
+ #endif
+-extern __inline__ int __stat (__const char *__path, struct stat *__statbuf)
++extern __inline __attribute__ ((__gnu_inline__)) int __stat (__const char *__path, struct stat *__statbuf)
+ {
+   return __xstat (_STAT_VER, __path, __statbuf);
+ }
+ libc_hidden_proto (__xmknod)
+-extern __inline__ int __mknod (__const char *__path, __mode_t __mode,
++extern __inline __attribute__ ((__gnu_inline__)) int __mknod (__const char *__path, __mode_t __mode,
+ 			       __dev_t __dev)
+ {
+   return __xmknod (_MKNOD_VER, __path, __mode, &__dev);
+diff -Nur glibc-2.5-orig/io/sys/stat.h glibc-2.5/io/sys/stat.h
+--- glibc-2.5-orig/io/sys/stat.h	2006-01-06 13:14:05.000000000 +0100
++++ glibc-2.5/io/sys/stat.h	2022-06-01 22:04:54.966383961 +0200
+@@ -430,28 +430,28 @@
+ #if defined __GNUC__ && __GNUC__ >= 2
+ /* Inlined versions of the real stat and mknod functions.  */
+ 
+-extern __inline__ int
++extern __inline __attribute__ ((__gnu_inline__)) int
+ __NTH (stat (__const char *__path, struct stat *__statbuf))
+ {
+   return __xstat (_STAT_VER, __path, __statbuf);
+ }
+ 
+ # if defined __USE_BSD || defined __USE_XOPEN_EXTENDED
+-extern __inline__ int
++extern __inline __attribute__ ((__gnu_inline__)) int
+ __NTH (lstat (__const char *__path, struct stat *__statbuf))
+ {
+   return __lxstat (_STAT_VER, __path, __statbuf);
+ }
+ # endif
+ 
+-extern __inline__ int
++extern __inline __attribute__ ((__gnu_inline__)) int
+ __NTH (fstat (int __fd, struct stat *__statbuf))
+ {
+   return __fxstat (_STAT_VER, __fd, __statbuf);
+ }
+ 
+ # ifdef __USE_ATFILE
+-extern __inline__ int
++extern __inline __attribute__ ((__gnu_inline__)) int
+ __NTH (fstatat (int __fd, __const char *__filename, struct stat *__statbuf,
+ 		int __flag))
+ {
+@@ -460,7 +460,7 @@
+ # endif
+ 
+ # if defined __USE_MISC || defined __USE_BSD
+-extern __inline__ int
++extern __inline __attribute__ ((__gnu_inline__)) int
+ __NTH (mknod (__const char *__path, __mode_t __mode, __dev_t __dev))
+ {
+   return __xmknod (_MKNOD_VER, __path, __mode, &__dev);
+@@ -468,7 +468,7 @@
+ # endif
+ 
+ # ifdef __USE_ATFILE
+-extern __inline__ int
++extern __inline __attribute__ ((__gnu_inline__)) int
+ __NTH (mknodat (int __fd, __const char *__path, __mode_t __mode,
+ 		__dev_t __dev))
+ {
+@@ -479,28 +479,28 @@
+ # if defined __USE_LARGEFILE64 \
+   && (! defined __USE_FILE_OFFSET64 \
+       || (defined __REDIRECT_NTH && defined __OPTIMIZE__))
+-extern __inline__ int
++extern __inline __attribute__ ((__gnu_inline__)) int
+ __NTH (stat64 (__const char *__path, struct stat64 *__statbuf))
+ {
+   return __xstat64 (_STAT_VER, __path, __statbuf);
+ }
+ 
+ #  if defined __USE_BSD || defined __USE_XOPEN_EXTENDED
+-extern __inline__ int
++extern __inline __attribute__ ((__gnu_inline__)) int
+ __NTH (lstat64 (__const char *__path, struct stat64 *__statbuf))
+ {
+   return __lxstat64 (_STAT_VER, __path, __statbuf);
+ }
+ #  endif
+ 
+-extern __inline__ int
++extern __inline __attribute__ ((__gnu_inline__)) int
+ __NTH (fstat64 (int __fd, struct stat64 *__statbuf))
+ {
+   return __fxstat64 (_STAT_VER, __fd, __statbuf);
+ }
+ 
+ #  ifdef __USE_GNU
+-extern __inline__ int
++extern __inline __attribute__ ((__gnu_inline__)) int
+ __NTH (fstatat64 (int __fd, __const char *__filename, struct stat64 *__statbuf,
+ 		  int __flag))
+ {
+diff -Nur glibc-2.5-orig/libio/bits/stdio2.h glibc-2.5/libio/bits/stdio2.h
+--- glibc-2.5-orig/libio/bits/stdio2.h	2005-03-19 01:14:58.000000000 +0100
++++ glibc-2.5/libio/bits/stdio2.h	2022-06-01 22:04:54.978384114 +0200
+@@ -75,7 +75,7 @@
+ extern char *__gets_chk (char *__str, size_t) __wur;
+ extern char *__REDIRECT (__gets_alias, (char *__str), gets) __wur;
+ 
+-extern __always_inline __wur char *
++extern __always_inline __attribute__ ((__gnu_inline__)) __wur char *
+ gets (char *__str)
+ {
+   if (__bos (__str) != (size_t) -1)
+@@ -89,7 +89,7 @@
+ 			 (char *__restrict __s, int __n,
+ 			  FILE *__restrict __stream), fgets) __wur;
+ 
+-extern __always_inline __wur char *
++extern __always_inline __attribute__ ((__gnu_inline__)) __wur char *
+ fgets (char *__restrict __s, int __n, FILE *__restrict __stream)
+ {
+   if (__bos (__s) != (size_t) -1
+@@ -105,7 +105,7 @@
+ 			 (char *__restrict __s, int __n,
+ 			  FILE *__restrict __stream), fgets_unlocked) __wur;
+ 
+-extern __always_inline __wur char *
++extern __always_inline __attribute__ ((__gnu_inline__)) __wur char *
+ fgets_unlocked (char *__restrict __s, int __n, FILE *__restrict __stream)
+ {
+   if (__bos (__s) != (size_t) -1
+diff -Nur glibc-2.5-orig/libio/bits/stdio.h glibc-2.5/libio/bits/stdio.h
+--- glibc-2.5-orig/libio/bits/stdio.h	2004-09-08 00:23:44.000000000 +0200
++++ glibc-2.5/libio/bits/stdio.h	2022-06-01 22:04:54.973384050 +0200
+@@ -24,7 +24,7 @@
+ #ifdef __cplusplus
+ # define __STDIO_INLINE inline
+ #else
+-# define __STDIO_INLINE extern __inline
++# define __STDIO_INLINE extern __inline __attribute__ ((__gnu_inline__))
+ #endif
+ 
+ 
+diff -Nur glibc-2.5-orig/math/bits/cmathcalls.h glibc-2.5/math/bits/cmathcalls.h
+--- glibc-2.5-orig/math/bits/cmathcalls.h	2001-07-06 06:55:35.000000000 +0200
++++ glibc-2.5/math/bits/cmathcalls.h	2022-06-01 22:04:54.899383108 +0200
+@@ -135,21 +135,21 @@
+ #if defined __GNUC__ && !__GNUC_PREREQ (2, 97) && defined __OPTIMIZE__
+ 
+ /* Imaginary part of Z.  */
+-extern __inline _Mdouble_
++extern __inline __attribute__ ((__gnu_inline__)) _Mdouble_
+ __MATH_PRECNAME(cimag) (_Mdouble_complex_ __z) __THROW
+ {
+   return __imag__ __z;
+ }
+ 
+ /* Real part of Z.  */
+-extern __inline _Mdouble_
++extern __inline __attribute__ ((__gnu_inline__)) _Mdouble_
+ __MATH_PRECNAME(creal) (_Mdouble_complex_ __z) __THROW
+ {
+   return __real__ __z;
+ }
+ 
+ /* Complex conjugate of Z.  */
+-extern __inline _Mdouble_complex_
++extern __inline __attribute__ ((__gnu_inline__)) _Mdouble_complex_
+ __MATH_PRECNAME(conj) (_Mdouble_complex_ __z) __THROW
+ {
+   return __extension__ ~__z;
+diff -Nur glibc-2.5-orig/math/math_private.h glibc-2.5/math/math_private.h
+--- glibc-2.5-orig/math/math_private.h	2022-09-08 19:16:05.897935979 +0000
++++ glibc-2.5/math/math_private.h	2022-09-08 20:05:55.501045342 +0000
+@@ -297,7 +297,7 @@
+ extern long double __significandl (long double x);
+ 
+ #if __GNUC_PREREQ (4, 0)
+-extern inline long double __copysignl (long double x, long double y)
++extern __inline __attribute__ ((__gnu_inline__)) long double __copysignl (long double x, long double y)
+ { return __builtin_copysignl (x, y); }
+ #endif
+ 
+diff -Nur glibc-2.5-orig/nptl/sysdeps/pthread/pthread.h glibc-2.5/nptl/sysdeps/pthread/pthread.h
+--- glibc-2.5-orig/nptl/sysdeps/pthread/pthread.h	2006-06-05 01:59:07.000000000 +0200
++++ glibc-2.5/nptl/sysdeps/pthread/pthread.h	2022-06-01 22:04:54.933383541 +0200
+@@ -568,11 +568,11 @@
+   } while (0)
+ #  endif
+ # else
+-/* Function called to call the cleanup handler.  As an extern inline
++/* Function called to call the cleanup handler.  As an extern __inline __attribute__ ((__gnu_inline__))
+    function the compiler is free to decide inlining the change when
+    needed or fall back on the copy which must exist somewhere
+    else.  */
+-extern __inline void
++extern __inline __attribute__ ((__gnu_inline__)) void
+ __pthread_cleanup_routine (struct __pthread_cleanup_frame *__frame)
+ {
+   if (__frame->__do_it)
+@@ -1103,7 +1103,7 @@
+ 
+ #ifdef __USE_EXTERN_INLINES
+ /* Optimizations.  */
+-extern __inline int
++extern __inline __attribute__ ((__gnu_inline__)) int
+ __NTH (pthread_equal (pthread_t __thread1, pthread_t __thread2))
+ {
+   return __thread1 == __thread2;
+diff -Nur glibc-2.5-orig/posix/bits/unistd.h glibc-2.5/posix/bits/unistd.h
+--- glibc-2.5-orig/posix/bits/unistd.h	2006-08-24 08:47:31.000000000 +0200
++++ glibc-2.5/posix/bits/unistd.h	2022-06-01 22:04:55.021384661 +0200
+@@ -26,7 +26,7 @@
+ extern ssize_t __REDIRECT (__read_alias, (int __fd, void *__buf,
+ 					  size_t __nbytes), read) __wur;
+ 
+-extern __always_inline __wur ssize_t
++extern __always_inline __attribute__ ((__gnu_inline__)) __wur ssize_t
+ read (int __fd, void *__buf, size_t __nbytes)
+ {
+   if (__bos0 (__buf) != (size_t) -1
+@@ -48,7 +48,7 @@
+ 			    __off64_t __offset), pread64) __wur;
+ 
+ # ifndef __USE_FILE_OFFSET64
+-extern __always_inline __wur ssize_t
++extern __always_inline __attribute__ ((__gnu_inline__)) __wur ssize_t
+ pread (int __fd, void *__buf, size_t __nbytes, __off_t __offset)
+ {
+   if (__bos0 (__buf) != (size_t) -1
+@@ -57,7 +57,7 @@
+   return __pread_alias (__fd, __buf, __nbytes, __offset);
+ }
+ # else
+-extern __always_inline __wur ssize_t
++extern __always_inline __attribute__ ((__gnu_inline__)) __wur ssize_t
+ pread (int __fd, void *__buf, size_t __nbytes, __off64_t __offset)
+ {
+   if (__bos0 (__buf) != (size_t) -1
+@@ -68,7 +68,7 @@
+ # endif
+ 
+ # ifdef __USE_LARGEFILE64
+-extern __always_inline __wur ssize_t
++extern __always_inline __attribute__ ((__gnu_inline__)) __wur ssize_t
+ pread64 (int __fd, void *__buf, size_t __nbytes, __off64_t __offset)
+ {
+   if (__bos0 (__buf) != (size_t) -1
+@@ -89,7 +89,7 @@
+ 				char *__restrict __buf, size_t __len), readlink)
+      __nonnull ((1, 2)) __wur;
+ 
+-extern __always_inline __nonnull ((1, 2)) __wur ssize_t
++extern __always_inline __attribute__ ((__gnu_inline__)) __nonnull ((1, 2)) __wur ssize_t
+ __NTH (readlink (__const char *__restrict __path, char *__restrict __buf,
+ 		 size_t __len))
+ {
+@@ -111,7 +111,7 @@
+ 			       readlinkat)
+      __nonnull ((2, 3)) __wur;
+ 
+-extern __always_inline __nonnull ((2, 3)) __wur ssize_t
++extern __always_inline __attribute__ ((__gnu_inline__)) __nonnull ((2, 3)) __wur ssize_t
+ __NTH (readlinkat (int __fd, __const char *__restrict __path,
+ 		   char *__restrict __buf, size_t __len))
+ {
+@@ -127,7 +127,7 @@
+ extern char *__REDIRECT_NTH (__getcwd_alias,
+ 			     (char *__buf, size_t __size), getcwd) __wur;
+ 
+-extern __always_inline __wur char *
++extern __always_inline __attribute__ ((__gnu_inline__)) __wur char *
+ __NTH (getcwd (char *__buf, size_t __size))
+ {
+   if (__bos (__buf) != (size_t) -1
+@@ -142,7 +142,7 @@
+ extern char *__REDIRECT_NTH (__getwd_alias, (char *__buf), getwd)
+      __nonnull ((1)) __wur;
+ 
+-extern __always_inline __nonnull ((1)) __attribute_deprecated__ __wur char *
++extern __always_inline __attribute__ ((__gnu_inline__)) __nonnull ((1)) __attribute_deprecated__ __wur char *
+ __NTH (getwd (char *__buf))
+ {
+   if (__bos (__buf) != (size_t) -1)
+@@ -156,7 +156,7 @@
+ extern size_t __REDIRECT_NTH (__confstr_alias, (int __name, char *__buf,
+ 						size_t __len), confstr);
+ 
+-extern __always_inline size_t
++extern __always_inline __attribute__ ((__gnu_inline__)) size_t
+ __NTH (confstr (int __name, char *__buf, size_t __len))
+ {
+   if (__bos (__buf) != (size_t) -1
+@@ -171,7 +171,7 @@
+ extern int __REDIRECT_NTH (__getgroups_alias, (int __size, __gid_t __list[]),
+ 			   getgroups) __wur;
+ 
+-extern __always_inline int
++extern __always_inline __attribute__ ((__gnu_inline__)) int
+ __NTH (getgroups (int __size, __gid_t __list[]))
+ {
+   if (__bos (__list) != (size_t) -1
+@@ -188,7 +188,7 @@
+ 					       size_t __buflen), ttyname_r)
+      __nonnull ((2));
+ 
+-extern __always_inline int
++extern __always_inline __attribute__ ((__gnu_inline__)) int
+ __NTH (ttyname_r (int __fd, char *__buf, size_t __buflen))
+ {
+   if (__bos (__buf) != (size_t) -1
+@@ -204,7 +204,7 @@
+ extern int __REDIRECT (__getlogin_r_alias, (char *__buf, size_t __buflen),
+ 		       getlogin_r) __nonnull ((1));
+ 
+-extern __always_inline int
++extern __always_inline __attribute__ ((__gnu_inline__)) int
+ getlogin_r (char *__buf, size_t __buflen)
+ {
+   if (__bos (__buf) != (size_t) -1
+@@ -221,7 +221,7 @@
+ extern int __REDIRECT_NTH (__gethostname_alias, (char *__buf, size_t __buflen),
+ 			   gethostname) __nonnull ((1));
+ 
+-extern __always_inline int
++extern __always_inline __attribute__ ((__gnu_inline__)) int
+ __NTH (gethostname (char *__buf, size_t __buflen))
+ {
+   if (__bos (__buf) != (size_t) -1
+@@ -239,7 +239,7 @@
+ 						   size_t __buflen),
+ 			   getdomainname) __nonnull ((1)) __wur;
+ 
+-extern __always_inline int
++extern __always_inline __attribute__ ((__gnu_inline__)) int
+ __NTH (getdomainname (char *__buf, size_t __buflen))
+ {
+   if (__bos (__buf) != (size_t) -1
+diff -Nur glibc-2.5-orig/socket/bits/socket2.h glibc-2.5/socket/bits/socket2.h
+--- glibc-2.5-orig/socket/bits/socket2.h	2005-08-08 21:00:53.000000000 +0200
++++ glibc-2.5/socket/bits/socket2.h	2022-06-01 22:04:54.953383796 +0200
+@@ -26,7 +26,7 @@
+ extern ssize_t __REDIRECT (__recv_alias, (int __fd, void *__buf, size_t __n,
+ 					  int __flags), recv);
+ 
+-extern __always_inline ssize_t
++extern __always_inline __attribute__ ((__gnu_inline__)) ssize_t
+ recv (int __fd, void *__buf, size_t __n, int __flags)
+ {
+   if (__bos0 (__buf) != (size_t) -1
+@@ -44,7 +44,7 @@
+ 			    int __flags, __SOCKADDR_ARG __addr,
+ 			    socklen_t *__restrict __addr_len), recvfrom);
+ 
+-extern __always_inline ssize_t
++extern __always_inline __attribute__ ((__gnu_inline__)) ssize_t
+ recvfrom (int __fd, void *__restrict __buf, size_t __n, int __flags,
+ 	  __SOCKADDR_ARG __addr, socklen_t *__restrict __addr_len)
+ {
+diff -Nur glibc-2.5-orig/stdlib/bits/stdlib.h glibc-2.5/stdlib/bits/stdlib.h
+--- glibc-2.5-orig/stdlib/bits/stdlib.h	2005-08-22 17:06:07.000000000 +0200
++++ glibc-2.5/stdlib/bits/stdlib.h	2022-06-01 22:04:54.992384292 +0200
+@@ -28,7 +28,7 @@
+ 			     (__const char *__restrict __name,
+ 			      char *__restrict __resolved), realpath) __wur;
+ 
+-extern __always_inline __wur char *
++extern __always_inline __attribute__ ((__gnu_inline__)) __wur char *
+ __NTH (realpath (__const char *__restrict __name, char *__restrict __resolved))
+ {
+   if (__bos (__resolved) != (size_t) -1)
+@@ -44,7 +44,7 @@
+ 					       size_t __buflen), ptsname_r)
+      __nonnull ((2));
+ 
+-extern __always_inline int
++extern __always_inline __attribute__ ((__gnu_inline__)) int
+ __NTH (ptsname_r (int __fd, char *__buf, size_t __buflen))
+ {
+   if (__bos (__buf) != (size_t) -1
+@@ -59,7 +59,7 @@
+ extern int __REDIRECT_NTH (__wctomb_alias, (char *__s, wchar_t __wchar),
+ 			   wctomb) __wur;
+ 
+-extern __always_inline __wur int
++extern __always_inline __attribute__ ((__gnu_inline__)) __wur int
+ __NTH (wctomb (char *__s, wchar_t __wchar))
+ {
+   /* We would have to include <limits.h> to get a definition of MB_LEN_MAX.
+@@ -83,7 +83,7 @@
+ 			       __const char *__restrict __src,
+ 			       size_t __len), mbstowcs);
+ 
+-extern __always_inline size_t
++extern __always_inline __attribute__ ((__gnu_inline__)) size_t
+ __NTH (mbstowcs (wchar_t *__restrict __dst, __const char *__restrict __src,
+ 		 size_t __len))
+ {
+@@ -104,7 +104,7 @@
+ 			       __const wchar_t *__restrict __src,
+ 			       size_t __len), wcstombs);
+ 
+-extern __always_inline size_t
++extern __always_inline __attribute__ ((__gnu_inline__)) size_t
+ __NTH (wcstombs (char *__restrict __dst, __const wchar_t *__restrict __src,
+ 		 size_t __len))
+ {
+diff -Nur glibc-2.5-orig/stdlib/stdlib.h glibc-2.5/stdlib/stdlib.h
+--- glibc-2.5-orig/stdlib/stdlib.h	2006-01-14 13:08:29.000000000 +0100
++++ glibc-2.5/stdlib/stdlib.h	2022-06-01 22:04:54.993384304 +0200
+@@ -324,18 +324,18 @@
+ /* Define inline functions which call the internal entry points.  */
+ 
+ __BEGIN_NAMESPACE_STD
+-extern __inline double
++extern __inline __attribute__ ((__gnu_inline__)) double
+ __NTH (strtod (__const char *__restrict __nptr, char **__restrict __endptr))
+ {
+   return __strtod_internal (__nptr, __endptr, 0);
+ }
+-extern __inline long int
++extern __inline __attribute__ ((__gnu_inline__)) long int
+ __NTH (strtol (__const char *__restrict __nptr, char **__restrict __endptr,
+ 	       int __base))
+ {
+   return __strtol_internal (__nptr, __endptr, __base, 0);
+ }
+-extern __inline unsigned long int
++extern __inline __attribute__ ((__gnu_inline__)) unsigned long int
+ __NTH (strtoul (__const char *__restrict __nptr, char **__restrict __endptr,
+ 		int __base))
+ {
+@@ -345,13 +345,13 @@
+ 
+ # ifdef __USE_ISOC99
+ __BEGIN_NAMESPACE_C99
+-extern __inline float
++extern __inline __attribute__ ((__gnu_inline__)) float
+ __NTH (strtof (__const char *__restrict __nptr, char **__restrict __endptr))
+ {
+   return __strtof_internal (__nptr, __endptr, 0);
+ }
+ #  ifndef __LDBL_COMPAT
+-extern __inline long double
++extern __inline __attribute__ ((__gnu_inline__)) long double
+ __NTH (strtold (__const char *__restrict __nptr, char **__restrict __endptr))
+ {
+   return __strtold_internal (__nptr, __endptr, 0);
+@@ -361,13 +361,13 @@
+ # endif
+ 
+ # ifdef __USE_BSD
+-__extension__ extern __inline long long int
++__extension__ extern __inline __attribute__ ((__gnu_inline__)) long long int
+ __NTH (strtoq (__const char *__restrict __nptr, char **__restrict __endptr,
+ 	       int __base))
+ {
+   return __strtoll_internal (__nptr, __endptr, __base, 0);
+ }
+-__extension__ extern __inline unsigned long long int
++__extension__ extern __inline __attribute__ ((__gnu_inline__)) unsigned long long int
+ __NTH (strtouq (__const char *__restrict __nptr, char **__restrict __endptr,
+ 		int __base))
+ {
+@@ -377,13 +377,13 @@
+ 
+ # if defined __USE_MISC || defined __USE_ISOC99
+ __BEGIN_NAMESPACE_C99
+-__extension__ extern __inline long long int
++__extension__ extern __inline __attribute__ ((__gnu_inline__)) long long int
+ __NTH (strtoll (__const char *__restrict __nptr, char **__restrict __endptr,
+ 		int __base))
+ {
+   return __strtoll_internal (__nptr, __endptr, __base, 0);
+ }
+-__extension__ extern __inline unsigned long long int
++__extension__ extern __inline __attribute__ ((__gnu_inline__)) unsigned long long int
+ __NTH (strtoull (__const char * __restrict __nptr, char **__restrict __endptr,
+ 		 int __base))
+ {
+@@ -393,17 +393,17 @@
+ # endif
+ 
+ __BEGIN_NAMESPACE_STD
+-extern __inline double
++extern __inline __attribute__ ((__gnu_inline__)) double
+ __NTH (atof (__const char *__nptr))
+ {
+   return strtod (__nptr, (char **) NULL);
+ }
+-extern __inline int
++extern __inline __attribute__ ((__gnu_inline__)) int
+ __NTH (atoi (__const char *__nptr))
+ {
+   return (int) strtol (__nptr, (char **) NULL, 10);
+ }
+-extern __inline long int
++extern __inline __attribute__ ((__gnu_inline__)) long int
+ __NTH (atol (__const char *__nptr))
+ {
+   return strtol (__nptr, (char **) NULL, 10);
+@@ -412,7 +412,7 @@
+ 
+ # if defined __USE_MISC || defined __USE_ISOC99
+ __BEGIN_NAMESPACE_C99
+-__extension__ extern __inline long long int
++__extension__ extern __inline __attribute__ ((__gnu_inline__)) long long int
+ __NTH (atoll (__const char *__nptr))
+ {
+   return strtoll (__nptr, (char **) NULL, 10);
+diff -Nur glibc-2.5-orig/string/argz.h glibc-2.5/string/argz.h
+--- glibc-2.5-orig/string/argz.h	2004-09-08 00:23:43.000000000 +0200
++++ glibc-2.5/string/argz.h	2022-06-01 22:04:54.892383019 +0200
+@@ -160,7 +160,7 @@
+ 			__const char *__restrict __entry) __THROW;
+ 
+ #ifdef __USE_EXTERN_INLINES
+-extern inline char *
++extern __inline __attribute__ ((__gnu_inline__)) char *
+ __NTH (__argz_next (__const char *__argz, size_t __argz_len,
+ 		    __const char *__entry))
+ {
+@@ -174,7 +174,7 @@
+   else
+     return __argz_len > 0 ? (char *) __argz : 0;
+ }
+-extern inline char *
++extern __inline __attribute__ ((__gnu_inline__)) char *
+ __NTH (argz_next (__const char *__argz, size_t __argz_len,
+ 		  __const char *__entry))
+ {
+diff -Nur glibc-2.5-orig/string/bits/string2.h glibc-2.5/string/bits/string2.h
+--- glibc-2.5-orig/string/bits/string2.h	2004-05-28 08:39:13.000000000 +0200
++++ glibc-2.5/string/bits/string2.h	2022-06-01 22:04:54.999384381 +0200
+@@ -43,7 +43,7 @@
+ # ifdef __cplusplus
+ #  define __STRING_INLINE inline
+ # else
+-#  define __STRING_INLINE extern __inline
++#  define __STRING_INLINE extern __inline __attribute__ ((__gnu_inline__))
+ # endif
+ #endif
+ 
+diff -Nur glibc-2.5-orig/string/bits/string3.h glibc-2.5/string/bits/string3.h
+--- glibc-2.5-orig/string/bits/string3.h	2005-08-08 21:02:31.000000000 +0200
++++ glibc-2.5/string/bits/string3.h	2022-06-01 22:04:55.005384457 +0200
+@@ -151,7 +151,7 @@
+ 					       __const char *__src,
+ 					       size_t __n), stpncpy);
+ 
+-extern __always_inline char *
++extern __always_inline __attribute__ ((__gnu_inline__)) char *
+ __NTH (stpncpy (char *__dest, __const char *__src, size_t __n))
+ {
+   if (__bos (__dest) != (size_t) -1
+diff -Nur glibc-2.5-orig/sysdeps/alpha/fpu/bits/mathinline.h glibc-2.5/sysdeps/alpha/fpu/bits/mathinline.h
+--- glibc-2.5-orig/sysdeps/alpha/fpu/bits/mathinline.h	2005-02-08 05:37:48.000000000 +0100
++++ glibc-2.5/sysdeps/alpha/fpu/bits/mathinline.h	2022-06-01 22:04:54.922383401 +0200
+@@ -25,7 +25,7 @@
+ #ifdef __cplusplus
+ # define __MATH_INLINE __inline
+ #else
+-# define __MATH_INLINE extern __inline
++# define __MATH_INLINE extern __inline __attribute__ ((__gnu_inline__))
+ #endif
+ 
+ #if defined __USE_ISOC99 && defined __GNUC__ && !__GNUC_PREREQ(3,0)
+diff -Nur glibc-2.5-orig/sysdeps/generic/inttypes.h glibc-2.5/sysdeps/generic/inttypes.h
+--- glibc-2.5-orig/sysdeps/generic/inttypes.h	2004-09-08 00:23:42.000000000 +0200
++++ glibc-2.5/sysdeps/generic/inttypes.h	2022-06-01 22:04:54.916383325 +0200
+@@ -330,7 +330,7 @@
+ 				   int __base, int __group) __THROW;
+ #   define __strtol_internal_defined	1
+ #  endif
+-extern __inline intmax_t
++extern __inline __attribute__ ((__gnu_inline__)) intmax_t
+ __NTH (strtoimax (__const char *__restrict nptr, char **__restrict endptr,
+ 		  int base))
+ {
+@@ -345,7 +345,7 @@
+ 					     int __base, int __group) __THROW;
+ #   define __strtoul_internal_defined	1
+ #  endif
+-extern __inline uintmax_t
++extern __inline __attribute__ ((__gnu_inline__)) uintmax_t
+ __NTH (strtoumax (__const char *__restrict nptr, char **__restrict endptr,
+ 		  int base))
+ {
+@@ -359,7 +359,7 @@
+ 				   int __base, int __group) __THROW;
+ #   define __wcstol_internal_defined	1
+ #  endif
+-extern __inline intmax_t
++extern __inline __attribute__ ((__gnu_inline__)) intmax_t
+ __NTH (wcstoimax (__const __gwchar_t *__restrict nptr,
+ 		  __gwchar_t **__restrict endptr, int base))
+ {
+@@ -376,7 +376,7 @@
+ 					     int __base, int __group) __THROW;
+ #   define __wcstoul_internal_defined	1
+ #  endif
+-extern __inline uintmax_t
++extern __inline __attribute__ ((__gnu_inline__)) uintmax_t
+ __NTH (wcstoumax (__const __gwchar_t *__restrict nptr,
+ 		  __gwchar_t **__restrict endptr, int base))
+ {
+@@ -393,7 +393,7 @@
+ 					 int __base, int __group) __THROW;
+ #   define __strtoll_internal_defined	1
+ #  endif
+-extern __inline intmax_t
++extern __inline __attribute__ ((__gnu_inline__)) intmax_t
+ __NTH (strtoimax (__const char *__restrict nptr, char **__restrict endptr,
+ 		  int base))
+ {
+@@ -411,7 +411,7 @@
+ 						   int __group) __THROW;
+ #   define __strtoull_internal_defined	1
+ #  endif
+-extern __inline uintmax_t
++extern __inline __attribute__ ((__gnu_inline__)) uintmax_t
+ __NTH (strtoumax (__const char *__restrict nptr, char **__restrict endptr,
+ 		  int base))
+ {
+@@ -427,7 +427,7 @@
+ 					 int __base, int __group) __THROW;
+ #   define __wcstoll_internal_defined	1
+ #  endif
+-extern __inline intmax_t
++extern __inline __attribute__ ((__gnu_inline__)) intmax_t
+ __NTH (wcstoimax (__const __gwchar_t *__restrict nptr,
+ 		  __gwchar_t **__restrict endptr, int base))
+ {
+@@ -446,7 +446,7 @@
+ 						   int __group) __THROW;
+ #   define __wcstoull_internal_defined	1
+ #  endif
+-extern __inline uintmax_t
++extern __inline __attribute__ ((__gnu_inline__)) uintmax_t
+ __NTH (wcstoumax (__const __gwchar_t *__restrict nptr,
+ 		  __gwchar_t **__restrict endptr, int base))
+ {
+diff -Nur glibc-2.5-orig/sysdeps/i386/fpu/bits/mathinline.h glibc-2.5/sysdeps/i386/fpu/bits/mathinline.h
+--- glibc-2.5-orig/sysdeps/i386/fpu/bits/mathinline.h	2004-09-08 00:23:42.000000000 +0200
++++ glibc-2.5/sysdeps/i386/fpu/bits/mathinline.h	2022-06-01 22:04:54.925383439 +0200
+@@ -26,7 +26,7 @@
+ #ifdef __cplusplus
+ # define __MATH_INLINE __inline
+ #else
+-# define __MATH_INLINE extern __inline
++# define __MATH_INLINE extern __inline __attribute__ ((__gnu_inline__))
+ #endif
+ 
+ 
+diff -Nur glibc-2.5-orig/sysdeps/ia64/fpu/bits/mathinline.h glibc-2.5/sysdeps/ia64/fpu/bits/mathinline.h
+--- glibc-2.5-orig/sysdeps/ia64/fpu/bits/mathinline.h	2004-09-08 23:44:02.000000000 +0200
++++ glibc-2.5/sysdeps/ia64/fpu/bits/mathinline.h	2022-06-01 22:04:54.924383427 +0200
+@@ -24,7 +24,7 @@
+ #ifdef __cplusplus
+ # define __MATH_INLINE __inline
+ #else
+-# define __MATH_INLINE extern __inline
++# define __MATH_INLINE extern __inline __attribute__ ((__gnu_inline__))
+ #endif
+ 
+ #if defined __USE_ISOC99 && defined __GNUC__ && __GNUC__ >= 2
+diff -Nur glibc-2.5-orig/sysdeps/powerpc/fpu/bits/mathinline.h glibc-2.5/sysdeps/powerpc/fpu/bits/mathinline.h
+--- glibc-2.5-orig/sysdeps/powerpc/fpu/bits/mathinline.h	2006-04-14 07:43:58.000000000 +0200
++++ glibc-2.5/sysdeps/powerpc/fpu/bits/mathinline.h	2022-06-01 22:04:54.922383401 +0200
+@@ -25,7 +25,7 @@
+ #ifdef __cplusplus
+ # define __MATH_INLINE __inline
+ #else
+-# define __MATH_INLINE extern __inline
++# define __MATH_INLINE extern __inline __attribute__ ((__gnu_inline__))
+ #endif  /* __cplusplus */
+ 
+ #if defined __GNUC__ && !defined _SOFT_FLOAT
+diff -Nur glibc-2.5-orig/sysdeps/s390/fpu/bits/mathinline.h glibc-2.5/sysdeps/s390/fpu/bits/mathinline.h
+--- glibc-2.5-orig/sysdeps/s390/fpu/bits/mathinline.h	2006-02-01 04:00:20.000000000 +0100
++++ glibc-2.5/sysdeps/s390/fpu/bits/mathinline.h	2022-06-01 22:04:54.926383452 +0200
+@@ -24,7 +24,7 @@
+ #ifdef __cplusplus
+ # define __MATH_INLINE __inline
+ #else
+-# define __MATH_INLINE extern __inline
++# define __MATH_INLINE extern __inline __attribute__ ((__gnu_inline__))
+ #endif
+ 
+ #if (!defined __NO_MATH_INLINES || defined __LIBC_INTERNAL_MATH_INLINES) \
+diff -Nur glibc-2.5-orig/sysdeps/sparc/fpu/bits/mathinline.h glibc-2.5/sysdeps/sparc/fpu/bits/mathinline.h
+--- glibc-2.5-orig/sysdeps/sparc/fpu/bits/mathinline.h	2006-01-14 13:09:02.000000000 +0100
++++ glibc-2.5/sysdeps/sparc/fpu/bits/mathinline.h	2022-06-01 22:04:54.923383414 +0200
+@@ -131,7 +131,7 @@
+ # ifdef __cplusplus
+ #  define __MATH_INLINE __inline
+ # else
+-#  define __MATH_INLINE extern __inline
++#  define __MATH_INLINE extern __inline __attribute__ ((__gnu_inline__))
+ # endif  /* __cplusplus */
+ 
+ /* The gcc, version 2.7 or below, has problems with all this inlining
+diff -Nur glibc-2.5-orig/sysdeps/unix/bsd/bsd4.4/bits/socket.h glibc-2.5/sysdeps/unix/bsd/bsd4.4/bits/socket.h
+--- glibc-2.5-orig/sysdeps/unix/bsd/bsd4.4/bits/socket.h	2004-09-11 18:28:10.000000000 +0200
++++ glibc-2.5/sysdeps/unix/bsd/bsd4.4/bits/socket.h	2022-06-01 22:04:54.946383707 +0200
+@@ -227,7 +227,7 @@
+ 				      struct cmsghdr *__cmsg) __THROW;
+ #ifdef __USE_EXTERN_INLINES
+ # ifndef _EXTERN_INLINE
+-#  define _EXTERN_INLINE extern __inline
++#  define _EXTERN_INLINE extern __inline __attribute__ ((__gnu_inline__))
+ # endif
+ _EXTERN_INLINE struct cmsghdr *
+ __NTH (__cmsg_nxthdr (struct msghdr *__mhdr, struct cmsghdr *__cmsg))
+@@ -246,7 +246,7 @@
+     return 0;
+   return __cmsg;
+ }
+-#endif	/* Use `extern inline'.  */
++#endif	/* Use `extern __inline __attribute__ ((__gnu_inline__))'.  */
+ 
+ /* Socket level message types.  */
+ enum
+diff -Nur glibc-2.5-orig/sysdeps/unix/sysv/linux/bits/sigset.h glibc-2.5/sysdeps/unix/sysv/linux/bits/sigset.h
+--- glibc-2.5-orig/sysdeps/unix/sysv/linux/bits/sigset.h	2001-07-06 06:56:14.000000000 +0200
++++ glibc-2.5/sysdeps/unix/sysv/linux/bits/sigset.h	2022-06-01 22:04:54.938383605 +0200
+@@ -43,7 +43,7 @@
+ # define _SIGSET_H_fns 1
+ 
+ # ifndef _EXTERN_INLINE
+-#  define _EXTERN_INLINE extern __inline
++#  define _EXTERN_INLINE extern __inline __attribute__ ((__gnu_inline__))
+ # endif
+ 
+ /* Return a mask that includes the bit for SIG only.  */
+diff -Nur glibc-2.5-orig/sysdeps/unix/sysv/linux/bits/socket.h glibc-2.5/sysdeps/unix/sysv/linux/bits/socket.h
+--- glibc-2.5-orig/sysdeps/unix/sysv/linux/bits/socket.h	2006-04-02 19:25:37.000000000 +0200
++++ glibc-2.5/sysdeps/unix/sysv/linux/bits/socket.h	2022-06-01 22:04:54.945383694 +0200
+@@ -264,7 +264,7 @@
+ 				      struct cmsghdr *__cmsg) __THROW;
+ #ifdef __USE_EXTERN_INLINES
+ # ifndef _EXTERN_INLINE
+-#  define _EXTERN_INLINE extern __inline
++#  define _EXTERN_INLINE extern __inline __attribute__ ((__gnu_inline__))
+ # endif
+ _EXTERN_INLINE struct cmsghdr *
+ __NTH (__cmsg_nxthdr (struct msghdr *__mhdr, struct cmsghdr *__cmsg))
+@@ -283,7 +283,7 @@
+     return 0;
+   return __cmsg;
+ }
+-#endif	/* Use `extern inline'.  */
++#endif	/* Use `extern __inline __attribute__ ((__gnu_inline__))'.  */
+ 
+ /* Socket level message types.  This must match the definitions in
+    <linux/socket.h>.  */
+diff -Nur glibc-2.5-orig/sysdeps/unix/sysv/linux/sys/sysmacros.h glibc-2.5/sysdeps/unix/sysv/linux/sys/sysmacros.h
+--- glibc-2.5-orig/sysdeps/unix/sysv/linux/sys/sysmacros.h	2004-09-08 00:18:59.000000000 +0200
++++ glibc-2.5/sysdeps/unix/sysv/linux/sys/sysmacros.h	2022-06-01 22:04:55.011384533 +0200
+@@ -27,30 +27,30 @@
+    they need.  */
+ #ifdef __GLIBC_HAVE_LONG_LONG
+ __extension__
+-extern __inline unsigned int gnu_dev_major (unsigned long long int __dev)
++extern __inline __attribute__ ((__gnu_inline__)) unsigned int gnu_dev_major (unsigned long long int __dev)
+      __THROW;
+ __extension__
+-extern __inline unsigned int gnu_dev_minor (unsigned long long int __dev)
++extern __inline __attribute__ ((__gnu_inline__)) unsigned int gnu_dev_minor (unsigned long long int __dev)
+      __THROW;
+ __extension__
+-extern __inline unsigned long long int gnu_dev_makedev (unsigned int __major,
++extern __inline __attribute__ ((__gnu_inline__)) unsigned long long int gnu_dev_makedev (unsigned int __major,
+ 							unsigned int __minor)
+      __THROW;
+ 
+ # if defined __GNUC__ && __GNUC__ >= 2
+-__extension__ extern __inline unsigned int
++__extension__ extern __inline __attribute__ ((__gnu_inline__)) unsigned int
+ __NTH (gnu_dev_major (unsigned long long int __dev))
+ {
+   return ((__dev >> 8) & 0xfff) | ((unsigned int) (__dev >> 32) & ~0xfff);
+ }
+ 
+-__extension__ extern __inline unsigned int
++__extension__ extern __inline __attribute__ ((__gnu_inline__)) unsigned int
+ __NTH (gnu_dev_minor (unsigned long long int __dev))
+ {
+   return (__dev & 0xff) | ((unsigned int) (__dev >> 12) & ~0xff);
+ }
+ 
+-__extension__ extern __inline unsigned long long int
++__extension__ extern __inline __attribute__ ((__gnu_inline__)) unsigned long long int
+ __NTH (gnu_dev_makedev (unsigned int __major, unsigned int __minor))
+ {
+   return ((__minor & 0xff) | ((__major & 0xfff) << 8)
+diff -Nur glibc-2.5-orig/sysdeps/x86_64/fpu/bits/mathinline.h glibc-2.5/sysdeps/x86_64/fpu/bits/mathinline.h
+--- glibc-2.5-orig/sysdeps/x86_64/fpu/bits/mathinline.h	2004-09-08 00:18:59.000000000 +0200
++++ glibc-2.5/sysdeps/x86_64/fpu/bits/mathinline.h	2022-06-01 22:04:54.924383427 +0200
+@@ -25,7 +25,7 @@
+ #ifdef __cplusplus
+ # define __MATH_INLINE __inline
+ #else
+-# define __MATH_INLINE extern __inline
++# define __MATH_INLINE extern __inline __attribute__ ((__gnu_inline__))
+ #endif
+ 
+ 
+diff -Nur glibc-2.5-orig/wcsmbs/bits/wchar2.h glibc-2.5/wcsmbs/bits/wchar2.h
+--- glibc-2.5-orig/wcsmbs/bits/wchar2.h	2006-01-14 13:09:47.000000000 +0100
++++ glibc-2.5/wcsmbs/bits/wchar2.h	2022-06-01 22:04:55.034384826 +0200
+@@ -30,7 +30,7 @@
+ 				 __const wchar_t *__restrict __s2, size_t __n),
+ 				wmemcpy);
+ 
+-extern __always_inline wchar_t *
++extern __always_inline __attribute__ ((__gnu_inline__)) wchar_t *
+ __NTH (wmemcpy (wchar_t *__restrict __s1, __const wchar_t *__restrict __s2,
+ 		size_t __n))
+ {
+@@ -46,7 +46,7 @@
+ 						   __const wchar_t *__s2,
+ 						   size_t __n), wmemmove);
+ 
+-extern __always_inline wchar_t *
++extern __always_inline __attribute__ ((__gnu_inline__)) wchar_t *
+ __NTH (wmemmove (wchar_t *__restrict __s1, __const wchar_t *__restrict __s2,
+ 		 size_t __n))
+ {
+@@ -65,7 +65,7 @@
+ 				 __const wchar_t *__restrict __s2,
+ 				 size_t __n), wmempcpy);
+ 
+-extern __always_inline wchar_t *
++extern __always_inline __attribute__ ((__gnu_inline__)) wchar_t *
+ __NTH (wmempcpy (wchar_t *__restrict __s1, __const wchar_t *__restrict __s2,
+ 		 size_t __n))
+ {
+@@ -81,7 +81,7 @@
+ extern wchar_t *__REDIRECT_NTH (__wmemset_alias, (wchar_t *__s, wchar_t __c,
+ 						  size_t __n), wmemset);
+ 
+-extern __always_inline wchar_t *
++extern __always_inline __attribute__ ((__gnu_inline__)) wchar_t *
+ __NTH (wmemset (wchar_t *__restrict __s, wchar_t __c, size_t __n))
+ {
+   if (__bos0 (__s) != (size_t) -1)
+@@ -97,7 +97,7 @@
+ 				(wchar_t *__restrict __dest,
+ 				 __const wchar_t *__restrict __src), wcscpy);
+ 
+-extern __always_inline wchar_t *
++extern __always_inline __attribute__ ((__gnu_inline__)) wchar_t *
+ __NTH (wcscpy (wchar_t *__dest, __const wchar_t *__src))
+ {
+   if (__bos (__dest) != (size_t) -1)
+@@ -112,7 +112,7 @@
+ 						 __const wchar_t *__src),
+ 				wcpcpy);
+ 
+-extern __always_inline wchar_t *
++extern __always_inline __attribute__ ((__gnu_inline__)) wchar_t *
+ __NTH (wcpcpy (wchar_t *__dest, __const wchar_t *__src))
+ {
+   if (__bos (__dest) != (size_t) -1)
+@@ -129,7 +129,7 @@
+ 				 __const wchar_t *__restrict __src,
+ 				 size_t __n), wcsncpy);
+ 
+-extern __always_inline wchar_t *
++extern __always_inline __attribute__ ((__gnu_inline__)) wchar_t *
+ __NTH (wcsncpy (wchar_t *__dest, __const wchar_t *__src, size_t __n))
+ {
+   if (__bos (__dest) != (size_t) -1
+@@ -148,7 +148,7 @@
+ 				 __const wchar_t *__restrict __src,
+ 				 size_t __n), wcpncpy);
+ 
+-extern __always_inline wchar_t *
++extern __always_inline __attribute__ ((__gnu_inline__)) wchar_t *
+ __NTH (wcpncpy (wchar_t *__dest, __const wchar_t *__src, size_t __n))
+ {
+   if (__bos (__dest) != (size_t) -1
+@@ -166,7 +166,7 @@
+ 				(wchar_t *__restrict __dest,
+ 				 __const wchar_t *__restrict __src), wcscat);
+ 
+-extern __always_inline wchar_t *
++extern __always_inline __attribute__ ((__gnu_inline__)) wchar_t *
+ __NTH (wcscat (wchar_t *__dest, __const wchar_t *__src))
+ {
+   if (__bos (__dest) != (size_t) -1)
+@@ -183,7 +183,7 @@
+ 				 __const wchar_t *__restrict __src,
+ 				 size_t __n), wcsncat);
+ 
+-extern __always_inline wchar_t *
++extern __always_inline __attribute__ ((__gnu_inline__)) wchar_t *
+ __NTH (wcsncat (wchar_t *__dest, __const wchar_t *__src, size_t __n))
+ {
+   if (__bos (__dest) != (size_t) -1)
+@@ -246,7 +246,7 @@
+ 			    (wchar_t *__restrict __s, int __n,
+ 			     __FILE *__restrict __stream), fgetws) __wur;
+ 
+-extern __always_inline __wur wchar_t *
++extern __always_inline __attribute__ ((__gnu_inline__)) __wur wchar_t *
+ fgetws (wchar_t *__restrict __s, int __n, __FILE *__restrict __stream)
+ {
+   if (__bos (__s) != (size_t) -1
+@@ -264,7 +264,7 @@
+ 			     __FILE *__restrict __stream), fgetws_unlocked)
+   __wur;
+ 
+-extern __always_inline __wur wchar_t *
++extern __always_inline __attribute__ ((__gnu_inline__)) __wur wchar_t *
+ fgetws_unlocked (wchar_t *__restrict __s, int __n, __FILE *__restrict __stream)
+ {
+   if (__bos (__s) != (size_t) -1
+@@ -281,7 +281,7 @@
+ 			      (char *__restrict __s, wchar_t __wchar,
+ 			       mbstate_t *__restrict __ps), wcrtomb) __wur;
+ 
+-extern __always_inline __wur size_t
++extern __always_inline __attribute__ ((__gnu_inline__)) __wur size_t
+ __NTH (wcrtomb (char *__s, wchar_t __wchar, mbstate_t *__ps))
+ {
+   /* We would have to include <limits.h> to get a definition of MB_LEN_MAX.
+@@ -307,7 +307,7 @@
+ 			       size_t __len, mbstate_t *__restrict __ps),
+ 			      mbsrtowcs);
+ 
+-extern __always_inline size_t
++extern __always_inline __attribute__ ((__gnu_inline__)) size_t
+ __NTH (mbsrtowcs (wchar_t *__restrict __dst, __const char **__restrict __src,
+ 		  size_t __len, mbstate_t *__restrict __ps))
+ {
+@@ -330,7 +330,7 @@
+ 			       size_t __len, mbstate_t *__restrict __ps),
+ 			      wcsrtombs);
+ 
+-extern __always_inline size_t
++extern __always_inline __attribute__ ((__gnu_inline__)) size_t
+ __NTH (wcsrtombs (char *__restrict __dst, __const wchar_t **__restrict __src,
+ 		  size_t __len, mbstate_t *__restrict __ps))
+ {
+@@ -352,7 +352,7 @@
+ 			       size_t __len, mbstate_t *__restrict __ps),
+ 			      mbsnrtowcs);
+ 
+-extern __always_inline size_t
++extern __always_inline __attribute__ ((__gnu_inline__)) size_t
+ __NTH (mbsnrtowcs (wchar_t *__restrict __dst, __const char **__restrict __src,
+ 		   size_t __nmc, size_t __len, mbstate_t *__restrict __ps))
+ {
+@@ -376,7 +376,7 @@
+ 			       size_t __nwc, size_t __len,
+ 			       mbstate_t *__restrict __ps), wcsnrtombs);
+ 
+-extern __always_inline size_t
++extern __always_inline __attribute__ ((__gnu_inline__)) size_t
+ __NTH (wcsnrtombs (char *__restrict __dst, __const wchar_t **__restrict __src,
+ 		   size_t __nwc, size_t __len, mbstate_t *__restrict __ps))
+ {
+diff -Nur glibc-2.5-orig/wcsmbs/wchar.h glibc-2.5/wcsmbs/wchar.h
+--- glibc-2.5-orig/wcsmbs/wchar.h	2006-09-27 17:56:30.000000000 +0200
++++ glibc-2.5/wcsmbs/wchar.h	2022-06-01 22:04:55.027384737 +0200
+@@ -326,19 +326,19 @@
+    locales must use ASCII encoding for the values in the ASCII range
+    and because the wchar_t encoding is always ISO 10646.  */
+ extern wint_t __btowc_alias (int __c) __asm ("btowc");
+-extern __inline wint_t
++extern __inline __attribute__ ((__gnu_inline__)) wint_t
+ __NTH (btowc (int __c))
+ { return (__builtin_constant_p (__c) && __c >= '\0' && __c <= '\x7f'
+ 	  ? (wint_t) __c : __btowc_alias (__c)); }
+ 
+ extern int __wctob_alias (wint_t __c) __asm ("wctob");
+-extern __inline int
++extern __inline __attribute__ ((__gnu_inline__)) int
+ __NTH (wctob (wint_t __wc))
+ { return (__builtin_constant_p (__wc) && __wc >= L'\0' && __wc <= L'\x7f'
+ 	  ? (int) __wc : __wctob_alias (__wc)); }
+ # endif
+ 
+-extern __inline size_t
++extern __inline __attribute__ ((__gnu_inline__)) size_t
+ __NTH (mbrlen (__const char *__restrict __s, size_t __n,
+ 	       mbstate_t *__restrict __ps))
+ { return (__ps != NULL
+@@ -548,38 +548,38 @@
+ /* Define inline functions which call the internal entry points.  */
+ __BEGIN_NAMESPACE_C99
+ 
+-extern __inline double
++extern __inline __attribute__ ((__gnu_inline__)) double
+ __NTH (wcstod (__const wchar_t *__restrict __nptr,
+ 	       wchar_t **__restrict __endptr))
+ { return __wcstod_internal (__nptr, __endptr, 0); }
+-extern __inline long int
++extern __inline __attribute__ ((__gnu_inline__)) long int
+ __NTH (wcstol (__const wchar_t *__restrict __nptr,
+ 	       wchar_t **__restrict __endptr, int __base))
+ { return __wcstol_internal (__nptr, __endptr, __base, 0); }
+-extern __inline unsigned long int
++extern __inline __attribute__ ((__gnu_inline__)) unsigned long int
+ __NTH (wcstoul (__const wchar_t *__restrict __nptr,
+ 		wchar_t **__restrict __endptr, int __base))
+ { return __wcstoul_internal (__nptr, __endptr, __base, 0); }
+ __END_NAMESPACE_C99
+ 
+ # ifdef __USE_GNU
+-extern __inline float
++extern __inline __attribute__ ((__gnu_inline__)) float
+ __NTH (wcstof (__const wchar_t *__restrict __nptr,
+ 	       wchar_t **__restrict __endptr))
+ { return __wcstof_internal (__nptr, __endptr, 0); }
+ #  ifndef __LDBL_COMPAT
+-extern __inline long double
++extern __inline __attribute__ ((__gnu_inline__)) long double
+ __NTH (wcstold (__const wchar_t *__restrict __nptr,
+ 		wchar_t **__restrict __endptr))
+ { return __wcstold_internal (__nptr, __endptr, 0); }
+ #  endif
+ __extension__
+-extern __inline long long int
++extern __inline __attribute__ ((__gnu_inline__)) long long int
+ __NTH (wcstoq (__const wchar_t *__restrict __nptr,
+ 	       wchar_t **__restrict __endptr, int __base))
+ { return __wcstoll_internal (__nptr, __endptr, __base, 0); }
+ __extension__
+-extern __inline unsigned long long int
++extern __inline __attribute__ ((__gnu_inline__)) unsigned long long int
+ __NTH (wcstouq (__const wchar_t *__restrict __nptr,
+ 		wchar_t **__restrict __endptr, int __base))
+ { return __wcstoull_internal (__nptr, __endptr, __base, 0); }
+diff -Nur glibc-2.5-orig/nptl/sysdeps/pthread/allocalim.h glibc-2.5/nptl/sysdeps/pthread/allocalim.h
+--- glibc-2.5-orig/nptl/sysdeps/pthread/allocalim.h	2006-05-02 08:16:07.000000000 +0200
++++ glibc-2.5/nptl/sysdeps/pthread/allocalim.h	2022-06-01 23:59:45.418853215 +0200
+@@ -22,7 +22,7 @@
+ 
+ 
+ extern int
+-__always_inline
++__always_inline __attribute__ ((__gnu_inline__))
+ __libc_use_alloca (size_t size)
+ {
+   return (__builtin_expect (size <= PTHREAD_STACK_MIN / 4, 1)
+diff -Nur glibc-2.5-orig/sysdeps/generic/allocalim.h glibc-2.5/sysdeps/generic/allocalim.h
+--- glibc-2.5-orig/sysdeps/generic/allocalim.h	2002-10-09 11:19:59.000000000 +0200
++++ glibc-2.5/sysdeps/generic/allocalim.h	2022-06-01 23:59:29.971651748 +0200
+@@ -1,4 +1,4 @@
+-extern inline int __libc_use_alloca (size_t size)
++extern __always_inline __attribute__ ((__gnu_inline__)) int __libc_use_alloca (size_t size)
+ {
+   return size <= __MAX_ALLOCA_CUTOFF;
+ }
+diff -Nur glibc-2.5-orig/argp/argp-fmtstream.h glibc-2.5/argp/argp-fmtstream.h
+--- glibc-2.5-orig/argp/argp-fmtstream.h	2005-09-27 23:45:41.000000000 +0200
++++ glibc-2.5/argp/argp-fmtstream.h	2022-06-02 00:16:12.587712449 +0200
+@@ -203,7 +203,7 @@
+ #endif
+ 
+ #ifndef ARGP_FS_EI
+-#define ARGP_FS_EI extern inline
++#define ARGP_FS_EI extern __inline __attribute__ ((__gnu_inline__))
+ #endif
+ 
+ ARGP_FS_EI size_t
+diff -Nur glibc-2.5-orig/stdlib/gmp.h glibc-2.5/stdlib/gmp.h
+--- glibc-2.5-orig/stdlib/gmp.h	2002-08-27 00:39:44.000000000 +0200
++++ glibc-2.5/stdlib/gmp.h	2022-06-02 00:17:12.123485870 +0200
+@@ -41,7 +41,7 @@
+ 
+ #ifndef _EXTERN_INLINE
+ #ifdef __GNUC__
+-#define _EXTERN_INLINE extern __inline__
++#define _EXTERN_INLINE extern __inline __attribute__ ((__gnu_inline__))
+ #else
+ #define _EXTERN_INLINE static
+ #endif
+diff -Nur glibc-2.5-orig/nptl/sysdeps/pthread/gai_misc.h glibc-2.5/nptl/sysdeps/pthread/gai_misc.h
+--- glibc-2.5-orig/nptl/sysdeps/pthread/gai_misc.h	2006-09-05 17:23:12.000000000 +0200
++++ glibc-2.5/nptl/sysdeps/pthread/gai_misc.h	2022-06-02 00:25:50.468219604 +0200
+@@ -76,7 +76,7 @@
+ #define gai_start_notify_thread __gai_start_notify_thread
+ #define gai_create_helper_thread __gai_create_helper_thread
+ 
+-extern inline void
++extern __inline __attribute__ ((__gnu_inline__)) void
+ __gai_start_notify_thread (void)
+ {
+   sigset_t ss;
+@@ -85,7 +85,7 @@
+   INTERNAL_SYSCALL (rt_sigprocmask, err, 4, SIG_SETMASK, &ss, NULL, _NSIG / 8);
+ }
+ 
+-extern inline int
++extern __inline __attribute__ ((__gnu_inline__)) int
+ __gai_create_helper_thread (pthread_t *threadp, void *(*tf) (void *),
+ 			    void *arg)
+ {
+diff -Nur glibc-2.5-orig/locale/programs/charmap-kw.h glibc-2.5/locale/programs/charmap-kw.h
+--- glibc-2.5-orig/locale/programs/charmap-kw.h	2005-12-20 08:10:31.000000000 +0100
++++ glibc-2.5/locale/programs/charmap-kw.h	2022-06-02 01:03:12.161806744 +0200
+@@ -125,7 +125,7 @@
+ }
+ 
+ #ifdef __GNUC__
+-__inline
++__inline __attribute__ ((__gnu_inline__))
+ #endif
+ const struct keyword_t *
+ charmap_hash (register const char *str, register unsigned int len)
+diff -Nur glibc-2.5-orig/locale/programs/locfile-kw.h glibc-2.5/locale/programs/locfile-kw.h
+--- glibc-2.5-orig/locale/programs/locfile-kw.h	2005-12-20 08:10:31.000000000 +0100
++++ glibc-2.5/locale/programs/locfile-kw.h	2022-06-02 01:05:17.581450183 +0200
+@@ -125,7 +125,7 @@
+ }
+ 
+ #ifdef __GNUC__
+-__inline
++__inline __attribute__ ((__gnu_inline__))
+ #endif
+ const struct keyword_t *
+ locfile_hash (register const char *str, register unsigned int len)
+diff -Nur glibc-2.5-orig/nptl/sysdeps/unix/sysv/linux/aio_misc.h glibc-2.5/nptl/sysdeps/unix/sysv/linux/aio_misc.h
+--- glibc-2.5-orig/nptl/sysdeps/unix/sysv/linux/aio_misc.h	2006-03-02 18:32:45.000000000 +0100
++++ glibc-2.5/nptl/sysdeps/unix/sysv/linux/aio_misc.h	2022-06-02 20:51:20.868238431 +0200
+@@ -27,7 +27,7 @@
+ # define aio_start_notify_thread __aio_start_notify_thread
+ # define aio_create_helper_thread __aio_create_helper_thread
+ 
+-extern inline void
++extern __inline __attribute__ ((__gnu_inline__)) void
+ __aio_start_notify_thread (void)
+ {
+   sigset_t ss;
+@@ -36,7 +36,7 @@
+   INTERNAL_SYSCALL (rt_sigprocmask, err, 4, SIG_SETMASK, &ss, NULL, _NSIG / 8);
+ }
+ 
+-extern inline int
++extern __inline __attribute__ ((__gnu_inline__)) int
+ __aio_create_helper_thread (pthread_t *threadp, void *(*tf) (void *),
+ 			    void *arg)
+ {

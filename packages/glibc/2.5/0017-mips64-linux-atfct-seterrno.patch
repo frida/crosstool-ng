@@ -1,0 +1,35 @@
+From 63a7d96696f49593bd647e8f2a1c538d0ff704fd Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ole=20Andr=C3=A9=20Vadla=20Ravn=C3=A5s?= <oleavr@gmail.com>
+Date: Mon, 12 Sep 2022 20:53:08 +0000
+Subject: [PATCH] linux: Fix linking on MIPS64
+
+Where __fxstatat() in sysdeps/unix/sysv/linux/fxstatat.c gets built and
+needs __atfct_seterrno(), which ended up missing on kernels supporting
+*at() syscalls, since it was behind an `#ifndef __ASSUME_ATFCTS` guard.
+---
+ sysdeps/unix/sysv/linux/openat.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/sysdeps/unix/sysv/linux/openat.c b/sysdeps/unix/sysv/linux/openat.c
+index df53b6c..6905f03 100644
+--- a/sysdeps/unix/sysv/linux/openat.c
++++ b/sysdeps/unix/sysv/linux/openat.c
+@@ -31,7 +31,6 @@
+ #ifndef OPENAT
+ # define OPENAT openat
+ 
+-# ifndef __ASSUME_ATFCTS
+ /* Set errno after a failed call.  If BUF is not null,
+    it is a /proc/self/fd/ path name we just tried to use.  */
+ void
+@@ -61,6 +60,7 @@ __atfct_seterrno (int errval, int fd, const char *buf)
+   __set_errno (errval);
+ }
+ 
++# ifndef __ASSUME_ATFCTS
+ int __have_atfcts;
+ # endif
+ #endif
+-- 
+2.34.1
+

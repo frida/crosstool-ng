@@ -1,0 +1,13 @@
+diff -Nur glibc-2.5-orig/configure glibc-2.5/configure
+--- glibc-2.5-orig/configure	2022-05-31 23:42:47.796934744 +0200
++++ glibc-2.5/configure	2022-06-01 00:11:53.829281494 +0200
+@@ -4536,7 +4536,8 @@
+ # thing on a system that doesn't need fixincludes.  (Not presently a problem.)
+ if test -n "$sysheaders"; then
+   ccheaders=`$CC -print-file-name=include`
+-  SYSINCLUDES="-nostdinc -isystem $ccheaders \
++  ccheaders_fixed=`$CC -print-file-name=include-fixed`
++  SYSINCLUDES="-nostdinc -isystem $ccheaders -isystem $ccheaders_fixed \
+ -isystem `echo $sysheaders | sed 's/:/ -isystem /g'`"
+   if test -n "$CXX"; then
+     cxxversion=`$CXX -dumpversion 2>&5` &&

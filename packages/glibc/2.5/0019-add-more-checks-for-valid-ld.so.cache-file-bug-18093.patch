@@ -1,0 +1,45 @@
+From d7913473ef33d04095a9100cd2d0803a360b100f Mon Sep 17 00:00:00 2001
+From: Andreas Schwab <schwab@suse.de>
+Date: Tue, 13 Sep 2022 16:59:02 +0000
+Subject: [PATCH 1/4] Add more checks for valid ld.so.cache file (bug 18093)
+
+---
+ elf/cache.c    | 5 +++++
+ elf/dl-cache.c | 5 ++++-
+ 2 files changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/elf/cache.c b/elf/cache.c
+index 6730fb3..fbc3703 100644
+--- a/elf/cache.c
++++ b/elf/cache.c
+@@ -171,6 +171,11 @@ print_cache (const char *cache_name)
+     }
+   else
+     {
++      /* Check for corruption, avoiding overflow.  */
++      if ((cache_size - sizeof (struct cache_file)) / sizeof (struct file_entry)
++	  < cache->nlibs)
++	error (EXIT_FAILURE, 0, _("File is not a cache file.\n"));
++
+       size_t offset = ALIGN_CACHE (sizeof (struct cache_file)
+ 				   + (cache->nlibs
+ 				      * sizeof (struct file_entry)));
+diff --git a/elf/dl-cache.c b/elf/dl-cache.c
+index fc7d991..396a4f2 100644
+--- a/elf/dl-cache.c
++++ b/elf/dl-cache.c
+@@ -202,7 +202,10 @@ _dl_load_cache_lookup (const char *name)
+ 	 - only the new format
+ 	 The following checks if the cache contains any of these formats.  */
+       if (file != MAP_FAILED && cachesize > sizeof *cache
+-	  && memcmp (file, CACHEMAGIC, sizeof CACHEMAGIC - 1) == 0)
++	  && memcmp (file, CACHEMAGIC, sizeof CACHEMAGIC - 1) == 0
++	  /* Check for corruption, avoiding overflow.  */
++	  && ((cachesize - sizeof *cache) / sizeof (struct file_entry)
++	      >= ((struct cache_file *) file)->nlibs))
+ 	{
+ 	  size_t offset;
+ 	  /* Looks ok.  */
+-- 
+2.34.1
+
