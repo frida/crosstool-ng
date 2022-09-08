@@ -56,6 +56,8 @@ do_kernel_headers()
 
     kernel_arch="${CT_ARCH}"
     case "${CT_ARCH}:${CT_ARCH_BITNESS}" in
+        x86:32) kernel_arch="i386";;
+        x86:64) kernel_arch="x86_64";;
         # ARM 64 (aka AArch64) is special
         arm:64) kernel_arch="arm64";;
     esac
