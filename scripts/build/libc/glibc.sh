@@ -285,6 +285,10 @@ glibc_backend_once()
                           install_root="${multi_root}"    \
                           install
 
+    pushd "${CT_SYSROOT_DIR}/lib"
+    [ -e ld-linux-armhf.so.3 ] && ln -sf ld-linux-armhf.so.3 ld-linux.so.3
+    popd
+
     if [ "${CT_BUILD_MANUALS}" = "y" -a "${multi_index}" = "${multi_count}" ]; then
         # We only need to build the manuals once. Only build them on the
         # last multilib target. If it's not multilib, it will happen on the
