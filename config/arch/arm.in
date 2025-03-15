@@ -119,3 +119,15 @@ config ARCH_ARM_TUPLE_USE_EABIHF
       the *eabihf tuples.
 
 endif
+
+if ARCH_64
+
+config ARCH_ARM_SPECIFIC_ABI
+    bool
+    prompt "Use a specific ABI"
+    default n
+    select ARCH_SUPPORTS_WITH_ABI
+    help
+      Set up the toolchain so that it uses a specific ABI.
+
+endif

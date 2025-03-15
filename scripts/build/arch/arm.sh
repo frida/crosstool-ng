@@ -37,6 +37,9 @@ CT_DoArchTupleValues() {
     if [ "${CT_ARCH_ARM_TUPLE_USE_EABIHF}" = "y" ]; then
         CT_TARGET_SYS="${CT_TARGET_SYS}hf"
     fi
+    if [ "${CT_ARCH_BITNESS}" = 64 -a -n "${CT_ARCH_ABI}" ]; then
+        CT_TARGET_SYS="${CT_TARGET_SYS}_${CT_ARCH_ABI}"
+    fi
 
     # If building multilib, zero out any WITH_*/*_CFLAG - GCC on ARM does not allow
     # any of them with multilib.
