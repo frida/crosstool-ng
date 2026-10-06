@@ -94,7 +94,7 @@ AM_PROG_CC_C_O
 AC_PROG_CXX
 AC_PROG_CPP
 AC_PROG_LEX([noyywrap])
-AC_PROG_YACC
+AX_PROG_BISON
 AS_IF([test -z "$CC" -o -z "$CXX"],
       [AC_MSG_ERROR([no suitable compiler found])])
 
@@ -143,6 +143,11 @@ AC_CHECK_PROGS([lzip], [lzip])
 CTNG_SET_KCONFIG_OPTION([lzip])
 AC_SUBST([lzip])
 
+# Zstandard is optional; used for state snapshot compression if selected.
+AC_CHECK_PROGS([zstd], [zstd])
+CTNG_SET_KCONFIG_OPTION([zstd])
+AC_SUBST([zstd])
+
 # Not a fatal failure even if we have neither - the tarballs may
 # be provided in a local directory.
 AC_CHECK_PROGS([wget], [wget])
@@ -161,10 +166,6 @@ AC_CHECK_PROGS([ninja], [ninja])
 CTNG_SET_KCONFIG_OPTION([ninja])
 AC_SUBST([ninja])
 
-AC_CHECK_PROGS([rsync], [rsync])
-CTNG_SET_KCONFIG_OPTION([rsync])
-AC_SUBST([rsync])
-
 CTNG_CPU_COUNT
 
 CTNG_PATH_TOOL_REQ([PATCH], [gpatch patch], [patch])
@@ -175,12 +176,12 @@ AS_IF([$PATCH --no-backup-if-mismatch </dev/null >/dev/null 2>&1],
       AC_MSG_RESULT([yes]),
       AC_MSG_ERROR([$PATCH does not support --no-backup-if-mismatch]))
 
-# We need a bash that is >= 3.1
+# We need a bash that is >= 4.0
 CTNG_PROG_VERSION_REQ_STRICT([BASH_SHELL],
-    [GNU bash >= 3.1],
+    [GNU bash >= 4.0],
     [bash],
     [bash],
-    [^GNU bash, version (3\.[1-9]|4|5)])
+    [^GNU bash, version (4|5)])
 
 # We need a awk that *is* GNU awk
 CTNG_PROG_VERSION_REQ_STRICT([AWK],
@@ -209,6 +210,13 @@ CTNG_PROG_VERSION_REQ_ANY([MAKE],
     [gmake make],
     [^GNU Make [4-9]\.],
     [make_4_0_or_newer])
+
+CTNG_PROG_VERSION_REQ_ANY([MAKE],
+    [GNU make >= 4.4],
+    [make],
+    [gmake make],
+    [^GNU Make (4\.[4-9]|[5-9]\.)],
+    [make_4_4_or_newer])
 
 # Check other companion tools that we may or may not build.
 CTNG_PROG_VERSION_REQ_ANY([LIBTOOL],
@@ -253,19 +261,11 @@ CTNG_PROG_VERSION([M4],
     [\(GNU M4\) ([2-9]\.|1\.[5-9]|1\.[1-4][0-9]|1\.4\.[2-9][0-9]|1\.4\.1[2-9])],
     [gnu_m4_1_4_12_or_newer])
 
-CTNG_PROG_VERSION([PYTHON],
-    [Python],
-    [python],
-    [python37 python3.7 python36 python3.6 python35 python3.5 python34 python3.4 python33 python3.3 python32 python3.2 python31 python3.1 python3 python27 python2.7 python26 python2.6 python2 python],
-    [^Python [23]\.],
-    [python])
+# Check for Python
+CTNG_PYTHON
 
-CTNG_PROG_VERSION([PYTHON],
-    [Python >= 3.4],
-    [python],
-    [python37 python3.7 python36 python3.6 python35 python3.5 python34 python3.4 python3 python],
-    [^Python 3\.([4-9]|[1-9][0-9]+)\.],
-    [python_3_4_or_newer])
+# Check for Python 3.4 or newer
+CTNG_PYTHON_VERSION([3],[4])
 
 CTNG_PROG_VERSION_REQ_ANY([BISON],
     [bison >= 2.7],

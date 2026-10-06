@@ -264,7 +264,7 @@ fi
 
 # Good, now grab a bit of informations on the system we're being run on,
 # just in case something goes awok, and it's not our fault:
-CT_SYS_USER=$(id -un)
+CT_SYS_USER=$(id -un 2>/dev/null || echo "unknown")
 CT_SYS_HOSTNAME=$(hostname -f 2>/dev/null || true)
 # Hmmm. Some non-DHCP-enabled machines do not have an FQDN... Fall back to node name.
 CT_SYS_HOSTNAME="${CT_SYS_HOSTNAME:-$(uname -n)}"
@@ -361,10 +361,12 @@ if [ -z "${CT_RESTART}" ]; then
         # binutils 2.14 and later obey it, older binutils ignore it.
         # Lets you build a working 32->64 bit cross gcc
         CT_BINUTILS_SYSROOT_ARG="--with-sysroot=${CT_SYSROOT_DIR}"
-        # Use --with-headers, else final gcc will define disable_glibc while
-        # building libgcc, and you'll have no profiling
         CT_CC_CORE_SYSROOT_ARG=("--without-headers")
-        CT_CC_SYSROOT_ARG=("--with-headers=${CT_HEADERS_DIR}")
+        if [ "${CT_LIBC_GLIBC}" = "y" ]; then
+            # Use --with-headers, else final gcc will define disable_glibc while
+            # building libgcc, and you'll have no profiling
+            CT_CC_SYSROOT_ARG=("--with-headers=${CT_HEADERS_DIR}")
+        fi
     fi
     CT_DoExecLog ALL mkdir -p "${CT_SYSROOT_DIR}"
     CT_DoExecLog ALL mkdir -p "${CT_DEBUGROOT_DIR}"
@@ -437,7 +439,7 @@ if [ -z "${CT_RESTART}" ]; then
             t="${!r}-"
         fi
 
-        for tool in ar as dlltool gcc g++ gcj gnatbind gdc gnatmake ld libtool nm objcopy objdump ranlib strip windres; do
+        for tool in ar as dlltool gcc gcc-ar gcc-nm gcc-ranlib g++ gcj gnatbind gdc gnatmake gnatls gnatlink ld libtool nm objcopy objdump ranlib strip windres; do
             # First try with prefix + suffix
             # Then try with prefix only
             # Then try with suffix only, but only for BUILD, and HOST iff REAL_BUILD == REAL_HOST
@@ -485,9 +487,20 @@ if [ -z "${CT_RESTART}" ]; then
                     # If any other is missing, only warn at low level
                     *)
                         # It does not deserve a WARN level.
+                        # TBD Do we want to check for tools required by specific languages here? i.e gnat* if Ada is selected.
                         CT_DoLog DEBUG "  Missing: '${t}${tool}${!s}' or '${t}${tool}' or '${tool}' : not required."
                         ;;
                 esac
+            fi
+        done
+
+        # Incase the toolchain is built using plugins (-flto),
+        # the gcc wrappers are needed for older binutils
+        for tool in ar nm ranlib; do
+            if [ -x "${CT_BUILDTOOLS_PREFIX_DIR}/bin/${!v}-gcc-${tool}" ]; then
+                CT_DoLog DEBUG "  '${!v}-${tool}' -> '${!v}-gcc-${tool}'"
+                # this already is a script, so just copy over
+                CT_DoExecLog ALL cp "${CT_BUILDTOOLS_PREFIX_DIR}/bin/${!v}-gcc-${tool}" "${CT_BUILDTOOLS_PREFIX_DIR}/bin/${!v}-${tool}"
             fi
         done
     done
@@ -592,7 +605,7 @@ if [ -z "${CT_RESTART}" ]; then
     AUTO_JOBS=$[ BUILD_NCPUS + 1 ]
     [ ${CT_PARALLEL_JOBS} -eq 0 ] && CT_JOBSFLAGS="${CT_JOBSFLAGS} -j${AUTO_JOBS}"
     [ ${CT_PARALLEL_JOBS} -gt 0 ] && CT_JOBSFLAGS="${CT_JOBSFLAGS} -j${CT_PARALLEL_JOBS}"
-    CT_JOBSFLAGS="${CT_JOBSFLAGS} -l${CT_LOAD}"
+    [ -n "${CT_LOAD}" ] && CT_JOBSFLAGS="${CT_JOBSFLAGS} -l${CT_LOAD}"
 
     # Override 'download only' option
     [ -n "${CT_SOURCE}" ] && CT_ONLY_DOWNLOAD=y
@@ -649,6 +662,7 @@ if [ -z "${CT_RESTART}" ]; then
     do_companion_libs_get
     do_binutils_get
     do_cc_get
+    do_linker_get
     do_libc_get
     do_debug_get
     do_test_suite_get
@@ -666,6 +680,7 @@ if [ -z "${CT_RESTART}" ]; then
         do_companion_libs_extract
         do_binutils_extract
         do_cc_extract
+        do_linker_extract
         do_libc_extract
         do_debug_extract
         do_test_suite_extract

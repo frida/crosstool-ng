@@ -1,7 +1,6 @@
 # musl second-part option
 
 ## depends on ! WINDOWS && ! BARE_METAL
-## depends on EXPERIMENTAL
 ## select LIBC_SUPPORT_THREADS_NATIVE
 ## select CC_CORE_NEEDED
 
@@ -62,3 +61,10 @@ config LIBC_MUSL_OPTIMIZE
     default "auto" if LIBC_MUSL_OPTIMIZE_AUTO
     default "yes"  if LIBC_MUSL_OPTIMIZE_SPEED
     default "size" if LIBC_MUSL_OPTIMIZE_SIZE
+
+config LIBC_MUSL_EXTRA_CFLAGS
+    string
+    prompt "extra target CFLAGS"
+    default ""
+    help
+      Extra target CFLAGS to use when building.

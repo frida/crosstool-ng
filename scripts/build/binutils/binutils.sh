@@ -33,6 +33,7 @@ do_binutils_for_build() {
     binutils_opts+=( "prefix=${CT_BUILDTOOLS_PREFIX_DIR}" )
     binutils_opts+=( "cflags=${CT_CFLAGS_FOR_BUILD}" )
     binutils_opts+=( "ldflags=${CT_LDFLAGS_FOR_BUILD}" )
+    binutils_opts+=( "complibs=${CT_BUILDTOOLS_PREFIX_DIR}" )
 
     do_binutils_backend "${binutils_opts[@]}"
 
@@ -66,6 +67,7 @@ do_binutils_for_host() {
     binutils_opts+=( "cflags=${CT_CFLAGS_FOR_HOST}" )
     binutils_opts+=( "ldflags=${CT_LDFLAGS_FOR_HOST}" )
     binutils_opts+=( "build_manuals=${CT_BUILD_MANUALS}" )
+    binutils_opts+=( "complibs=${CT_HOST_COMPLIBS_DIR}" )
 
     do_binutils_backend "${binutils_opts[@]}"
 
@@ -118,6 +120,7 @@ do_binutils_backend() {
     local static_build
     local cflags
     local ldflags
+    local complibs
     local build_manuals=no
     local -a extra_config
     local -a extra_make_flags
@@ -167,6 +170,11 @@ do_binutils_backend() {
         extra_config+=("--disable-multilib")
     fi
 
+    # gprofng is unavailable for non-glibc build/hosts
+    if [ "${CT_BINUTILS_GPROFNG}" != "y" ]; then
+        extra_config+=("--disable-gprofng")
+    fi
+
     # Disable gdb when building from the binutils-gdb repository.
     extra_config+=("--disable-sim")
     extra_config+=("--disable-gdb")
@@ -176,13 +184,26 @@ do_binutils_backend() {
 
     [ "${CT_TOOLCHAIN_ENABLE_NLS}" != "y" ] && extra_config+=("--disable-nls")
 
-    # Disable usage of glob for higher compatibility.
-    # Not strictly needed for anything but GDB anyways.
-    export ac_cv_func_glob=no
+    case "${CT_BINUTILS_GZ_ZSTD}" in
+        y) extra_config+=("--with-zstd") ;;
+        m) ;;
+        *) extra_config+=("--without-zstd") ;;
+    esac
+
+    # gold links with CXXLINK/g++, not libtool, and does not understand
+    # -all-static
+    if [ "${static_build}" = "y" ]; then
+        case "${CT_BINUTILS_LINKERS_LIST}" in
+            *gold*)
+                extra_config+=("--with-gold-ldflags=--static")
+                ;;
+        esac
+    fi
 
     CT_DoLog DEBUG "Extra config passed: '${extra_config[*]}'"
 
     CT_DoExecLog CFG                                            \
+    PKG_CONFIG_PATH="${complibs}/lib/pkgconfig"                 \
     CC_FOR_BUILD="${CT_BUILD}-gcc"                              \
     CFLAGS_FOR_BUILD="${CT_CFLAGS_FOR_BUILD}"                   \
     CXXFLAGS_FOR_BUILD="${CT_CFLAGS_FOR_BUILD} ${CT_CXXFLAGS_FOR_BUILD}" \
@@ -209,6 +230,13 @@ do_binutils_backend() {
     fi
 
     CT_DoLog EXTRA "Building binutils"
+    if [ "${static_build}" = "y" ]; then
+        case "${CT_BINUTILS_LINKERS_LIST}" in
+            *gold*)
+                CT_DoExecLog ALL make -C gold ${CT_JOBSFLAGS}
+                ;;
+        esac
+    fi
     CT_DoExecLog ALL make "${extra_make_flags[@]}" ${CT_JOBSFLAGS}
 
     CT_DoLog EXTRA "Installing binutils"
@@ -289,7 +317,7 @@ do_elf2flt_backend() {
         --prefix=${prefix}                                      \
         --with-bfd-include-dir=${binutils_bld}/bfd              \
         --with-binutils-include-dir=${binutils_src}/include     \
-        --with-libbfd=${binutils_bld}/bfd/libbfd.a              \
+        --with-libbfd=${binutils_bld}/bfd/.libs/libbfd.a        \
         --with-libiberty=${binutils_bld}/libiberty/libiberty.a  \
         --disable-werror                                        \
         ${elf2flt_opts}                                         \
@@ -310,9 +338,13 @@ do_binutils_for_target() {
     local -a install_targets
     local t
 
-    [ "${CT_BINUTILS_FOR_TARGET_IBERTY}"  = "y" ] && targets+=("libiberty")
     [ "${CT_BINUTILS_FOR_TARGET_BFD}"     = "y" ] && targets+=("bfd")
     [ "${CT_BINUTILS_FOR_TARGET_OPCODES}" = "y" ] && targets+=("opcodes")
+
+    # libiberty should be installed after opcodes
+    # because of this bug: https://sourceware.org/bugzilla/show_bug.cgi?id=34337
+    [ "${CT_BINUTILS_FOR_TARGET_IBERTY}"  = "y" ] && targets+=("libiberty")
+
     for t in "${targets[@]}"; do
         build_targets+=("all-${t}")
         install_targets+=("install-${t}")

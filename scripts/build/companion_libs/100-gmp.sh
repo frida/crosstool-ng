@@ -77,7 +77,7 @@ do_gmp_for_target() {
             prefix="/usr"
             ;;
     esac
-    gmp_opts+=( "cflags=${CT_ALL_TARGET_CFLAGS}" )
+    gmp_opts+=( "cflags=${CT_ALL_TARGET_CFLAGS} ${CT_GMP_EXTRA_CFLAGS}" )
     gmp_opts+=( "prefix=${prefix}" )
     gmp_opts+=( "destdir=${CT_SYSROOT_DIR}" )
     gmp_opts+=( "shared=${CT_SHARED_LIBS}" )
@@ -109,7 +109,7 @@ do_gmp_backend() {
 
     CT_DoLog EXTRA "Configuring GMP"
 
-    # To avoind “illegal text-relocation” linking error against
+    # To avoid “illegal text-relocation” linking error against
     # the static library, see:
     #     https://github.com/Homebrew/homebrew-core/pull/25470
     case "${host}" in
@@ -118,12 +118,16 @@ do_gmp_backend() {
             ;;
     esac
 
+    if [ "${CT_CC_LANG_JIT}" = "y" ]; then
+        extra_config+=("--with-pic")
+    fi
+
     # GMP's configure script doesn't respect the host parameter
     # when not cross-compiling, ie when build == host so set
     # CC_FOR_BUILD and CPP_FOR_BUILD.
     CT_DoExecLog CFG                                \
     CC_FOR_BUILD="${CT_BUILD}-gcc"                  \
-    CPP_FOR_BUILD="{CT_BUILD}-cpp"                  \
+    CPP_FOR_BUILD="${CT_BUILD}-cpp"                 \
     CC="${host}-gcc"                                \
     CFLAGS="${cflags} -fexceptions"                 \
     LDFLAGS="${ldflags}"                            \

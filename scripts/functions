@@ -1,6 +1,6 @@
-# -*- mode: sh; tab-width: 4 -*-
+# -*- mode: bash; tab-width: 4 -*-
 # vi: ts=4:sw=4:sts=4:et
-# vim: filetype=sh :
+# vim: filetype=bash
 # This file contains some useful common functions
 # Copyright 2007 Yann E. MORIN
 # Licensed under the GPL v2. See COPYING in the root of this package
@@ -25,6 +25,7 @@ CT_LoadConfig() {
     . "${CT_LIB_DIR}/scripts/build/binutils/${CT_BINUTILS}.sh"
     . "${CT_LIB_DIR}/scripts/build/libc.sh"
     . "${CT_LIB_DIR}/scripts/build/cc/${CT_CC}.sh"
+    . "${CT_LIB_DIR}/scripts/build/linker.sh"
     . "${CT_LIB_DIR}/scripts/build/debug.sh"
     . "${CT_LIB_DIR}/scripts/build/test_suite.sh"
 
@@ -174,8 +175,9 @@ CT_OnError() {
             CT_DoLog ERROR ">> NOTE: You configuration uses non-default patch sets. Please"
             CT_DoLog ERROR ">> select 'bundled' as the set of patches applied and attempt"
             CT_DoLog ERROR ">> to reproduce this issue. Issues reported with other patch"
-            CT_DoLog ERROR ">> set selections (none, local, bundled+local) are going to be"
-            CT_DoLog ERROR ">> closed without explanation."
+            CT_DoLog ERROR ">> set selections (none, local, bundled+local,"
+            CT_DoLog ERROR ">> bundled+bundled_exp bundled+bundled_exp+local) are going to"
+            CT_DoLog ERROR ">> be closed without explanation."
             CT_DoLog ERROR ">>"
         fi
         CT_DoLog ERROR ">>  If you feel this is a bug in crosstool-NG, report it at:"
@@ -214,23 +216,23 @@ set +o hashall
 #    FIXME: it doesn't look like anyone is overriding stdin/stderr. Do we need
 #    to save/restore them?
 CT_LogEnable() {
-	local clean=no
-	local arg
+    local clean=no
+    local arg
 
-	for arg in "$@"; do eval "$arg"; done
-	exec 6>&1 7>&2 8<&0
-	CT_BUILD_LOG="${CT_TOP_DIR}/build.log"
-	CT_LOG_ENABLED=y
+    for arg in "$@"; do eval "$arg"; done
+    exec 6>&1 7>&2 8<&0
+    CT_BUILD_LOG="${CT_TOP_DIR}/build.log"
+    CT_LOG_ENABLED=y
     if [ "$clean" = "yes" ]; then
-		rm -f "${CT_BUILD_LOG}"
-	fi
-	exec >>"${CT_BUILD_LOG}"
+        rm -f "${CT_BUILD_LOG}"
+    fi
+    exec >>"${CT_BUILD_LOG}"
 }
 
 # Restore original stdout, stderr and stdin
 CT_LogDisable() {
-	exec >&6 2>&7 <&8
-	CT_LOG_ENABLED=
+    exec >&6 2>&7 <&8
+    CT_LOG_ENABLED=
 }
 
 # The different log levels:
@@ -886,7 +888,7 @@ CT_DoVerifySignature()
         cat=cat
         ;;
     unpacked)
-        # Linux kernel: uncompressed tarball is signed, them compressed by various methods
+        # Linux kernel: uncompressed tarball is signed, then compressed by various methods
         case "${file}" in
         *.tar.*)
             sigfile="${file%.tar.*}.tar"
@@ -955,6 +957,7 @@ CT_GetFile()
         # Do we already have it in *our* tarballs dir?
         if [ -r "${CT_TARBALLS_DIR}/${basename}${ext}" ]; then
             CT_DoLog DEBUG "Already have '${CT_TARBALLS_DIR}/${basename}${ext}'"
+            touch "${CT_TARBALLS_DIR}/${basename}${ext}" # for CI
             return 0
         fi
 
@@ -1296,6 +1299,28 @@ CT_TrapEnvExport()
     }
 }
 
+# Resolve 'auto' compression to an actual algorithm.
+# Called once from CT_DoSaveState; the resolved value is then saved in env.sh.
+CT_SaveStateResolveCompress() {
+    case "${CT_DEBUG_CT_SAVE_STEPS_COMPRESS}" in
+        auto)
+            if command -v zstd >/dev/null 2>&1; then
+                CT_DEBUG_CT_SAVE_STEPS_COMPRESS="zstd"
+            elif command -v gzip >/dev/null 2>&1; then
+                CT_DEBUG_CT_SAVE_STEPS_COMPRESS="gzip"
+            else
+                CT_DEBUG_CT_SAVE_STEPS_COMPRESS=""
+            fi
+            CT_DoLog STATE "  Auto-detected compression: ${CT_DEBUG_CT_SAVE_STEPS_COMPRESS:-none}"
+            ;;
+    esac
+    # Clamp level for gzip (1-9)
+    if [ "${CT_DEBUG_CT_SAVE_STEPS_COMPRESS}" = "gzip" ] && \
+       [ "${CT_DEBUG_CT_SAVE_STEPS_COMPRESS_LEVEL}" -gt 9 ]; then
+        CT_DEBUG_CT_SAVE_STEPS_COMPRESS_LEVEL=9
+    fi
+}
+
 # This function creates a tarball of the specified directory, but
 # only if it exists
 # Usage: CT_DoTarballIfExists <dir> <tarball_basename> [extra_tar_options [...]]
@@ -1306,9 +1331,10 @@ CT_DoTarballIfExists() {
     local -a extra_tar_opts=( "$@" )
     local -a compress
 
-    case "${CT_DEBUG_CT_SAVE_STEPS_GZIP}" in
-        y)  compress=( gzip -c -3 - ); tar_ext=.gz;;
-        *)  compress=( cat - );        tar_ext=;;
+    case "${CT_DEBUG_CT_SAVE_STEPS_COMPRESS}" in
+        gzip)  compress=( gzip -c -"${CT_DEBUG_CT_SAVE_STEPS_COMPRESS_LEVEL}" - ); tar_ext=.gz;;
+        zstd)  compress=( zstd -q -T0 -"${CT_DEBUG_CT_SAVE_STEPS_COMPRESS_LEVEL}" - ); tar_ext=.zst;;
+        *)     compress=( cat - ); tar_ext=;;
     esac
 
     if [ -d "${dir}" ]; then
@@ -1331,33 +1357,37 @@ CT_DoExtractTarballIfExists() {
     local -a extra_tar_opts=( "$@" )
     local -a uncompress
 
-    case "${CT_DEBUG_CT_SAVE_STEPS_GZIP}" in
-        y)  uncompress=( gzip -c -d ); tar_ext=.gz;;
-        *)  uncompress=( cat );        tar_ext=;;
-    esac
-
-    if [ -f "${tarball}.tar${tar_ext}" ]; then
-        CT_DoLog DEBUG "  Restoring '${dir}'"
-        CT_DoForceRmdir "${dir}"
-        CT_DoExecLog DEBUG mkdir -p "${dir}"
-        { "${uncompress[@]}" "${tarball}.tar${tar_ext}"     \
-          |tar x -C "${dir}" -v -f - "${extra_tar_opts[@]}" ;
-        } 2>&1 |${sed} -r -e 's/^/    /;' |CT_DoLog STATE
+    if [ -f "${tarball}.tar.zst" ]; then
+        uncompress=( zstd -q -dc ); tar_ext=.zst
+    elif [ -f "${tarball}.tar.gz" ]; then
+        uncompress=( gzip -c -d ); tar_ext=.gz
+    elif [ -f "${tarball}.tar" ]; then
+        uncompress=( cat ); tar_ext=
     else
         CT_DoLog STATE "  Not restoring '${dir}': does not exist"
+        return 0
     fi
+
+    CT_DoLog DEBUG "  Restoring '${dir}'"
+    CT_DoForceRmdir "${dir}"
+    CT_DoExecLog DEBUG mkdir -p "${dir}"
+    { "${uncompress[@]}" "${tarball}.tar${tar_ext}"     \
+      |tar x -C "${dir}" -v -f - "${extra_tar_opts[@]}" ;
+    } 2>&1 |${sed} -r -e 's/^/    /;' |CT_DoLog STATE
 }
 
 # This function saves the state of the toolchain to be able to restart
 # at any one point
 # Usage: CT_DoSaveState <next_step_name>
 CT_DoSaveState() {
-	[ "${CT_DEBUG_CT_SAVE_STEPS}" = "y" ] || return 0
+    [ "${CT_DEBUG_CT_SAVE_STEPS}" = "y" ] || return 0
     local state_name="$1"
     local state_dir="${CT_STATE_DIR}/${state_name}"
     local v
 
     CT_DoLog INFO "Saving state to restart at step '${state_name}'..."
+
+    CT_SaveStateResolveCompress
 
     rm -rf "${state_dir}"
     mkdir -p "${state_dir}"
@@ -1388,11 +1418,24 @@ CT_DoSaveState() {
 
     CT_DoLog STATE "  Saving log file"
     CT_LogDisable
-    case "${CT_DEBUG_CT_SAVE_STEPS_GZIP}" in
-        y)  gzip -3 -c "${CT_BUILD_LOG}"  >"${state_dir}/log.gz";;
-        *)  cat "${CT_BUILD_LOG}" >"${state_dir}/log";;
+    case "${CT_DEBUG_CT_SAVE_STEPS_COMPRESS}" in
+        gzip)  gzip -"${CT_DEBUG_CT_SAVE_STEPS_COMPRESS_LEVEL}" -c "${CT_BUILD_LOG}" >"${state_dir}/log.gz";;
+        zstd)  zstd -q -T0 -"${CT_DEBUG_CT_SAVE_STEPS_COMPRESS_LEVEL}" -c "${CT_BUILD_LOG}" >"${state_dir}/log.zst";;
+        *)     cat "${CT_BUILD_LOG}" >"${state_dir}/log";;
     esac
     CT_LogEnable
+
+    # Optionally prune earlier states, keeping only the one just saved. We
+    # prune after the new state is complete, so an interrupted save never
+    # leaves us without a valid state to restart from.
+    if [ "${CT_DEBUG_CT_SAVE_STEPS_LAST_ONLY}" = "y" ]; then
+        CT_DoLog STATE "  Removing previously-saved states"
+        for v in "${CT_STATE_DIR}"/*; do
+            [ -d "${v}" ] || continue
+            [ "${v}" = "${state_dir}" ] && continue
+            CT_DoForceRmdir "${v}"
+        done
+    fi
 }
 
 # This function restores a previously saved state
@@ -1426,10 +1469,13 @@ CT_DoLoadState(){
     CT_DoLog STATE "  Restoring log file"
     CT_LogDisable
     mv "${CT_BUILD_LOG}" "${CT_BUILD_LOG}.tail"
-    case "${CT_DEBUG_CT_SAVE_STEPS_GZIP}" in
-        y)  gzip -dc "${state_dir}/log.gz" >"${CT_BUILD_LOG}";;
-        *)  cat "${state_dir}/log" >"${CT_BUILD_LOG}";;
-    esac
+    if [ -f "${state_dir}/log.zst" ]; then
+        zstd -q -dc "${state_dir}/log.zst" >"${CT_BUILD_LOG}"
+    elif [ -f "${state_dir}/log.gz" ]; then
+        gzip -dc "${state_dir}/log.gz" >"${CT_BUILD_LOG}"
+    else
+        cat "${state_dir}/log" >"${CT_BUILD_LOG}"
+    fi
     cat "${CT_BUILD_LOG}.tail" >>"${CT_BUILD_LOG}"
     CT_LogEnable
     rm -f "${CT_BUILD_LOG}.tail"
@@ -1784,9 +1830,10 @@ CT_Mirrors()
         echo "ftp://ftp.gnu.org/gnu/${project}"
         ;;
     sourceware)
+        echo "https://sourceware.org/${project}/ftp"
         echo "ftp://sourceware.org/pub/${project}"
-        echo "http://mirrors.kernel.org/sourceware/${project}"
-        echo "http://gcc.gnu.org/pub/${project}"
+        echo "https://mirrors.kernel.org/sourceware/${project}"
+        echo "https://gcc.gnu.org/pub/${project}"
         ;;
     Linaro)
         local version="${3}"
@@ -1806,7 +1853,7 @@ CT_Mirrors()
             '')
                 # Ignore, this happens before .config is fully evaluated
                 ;;
-            [3456].*)
+            [34567].*)
                 echo "https://cdn.kernel.org/pub/linux/kernel/v${version%%.*}.x"
                 ;;
             2.6.*)
@@ -2237,6 +2284,7 @@ CT_DoExtractPatch()
     local archive ext
     local -a patch_dirs
     local bundled_patch_dir
+    local bundled_exp_patch_dir
     local bundled_common_patch_dir
     local local_patch_dir
     local local_common_patch_dir
@@ -2265,9 +2313,9 @@ CT_DoExtractPatch()
     # Can use common location only if using non-custom source, only bundled patches
     # and no overlays. Otherwise, this source directory is custom-tailored for this
     # particular configuration and cannot be reused by different configurations.
-    if [ "${src_custom}" != "y" -a \
-            "${patch_order}" = "bundled" -a \
-            ! -d "${CT_BUILD_DIR}/overlay/${dir_name}" ]; then
+    if test "${src_custom}" != "y" -a \
+            \( "${patch_order}" = 'bundled' -o "${patch_order}" = 'bundled,bundled_exp' \) -a \
+            ! -d "${CT_BUILD_DIR}/overlay/${dir_name}"; then
         src_dir="${CT_COMMON_SRC_DIR}"
     else
         src_dir="${CT_SRC_DIR}"
@@ -2283,10 +2331,11 @@ CT_DoExtractPatch()
             CT_DoExecLog ALL rm -f "${src_dir}/.${basename}".*
         fi
 
-        if [ -f "${src_dir}/.${basename}.extracted" ]; then
+        if [ -f "${src_dir}/.${basename}.extracted" -a -d "${src_dir}/${basename}" ]; then
             CT_DoLog DEBUG "Already extracted ${basename}"
         else
             CT_DoLog EXTRA "Extracting ${basename}"
+            CT_DoExecLog ALL rm -f "${src_dir}/.${basename}".*
             CT_DoExecLog ALL touch "${src_dir}/.${basename}.extracting"
             if [ "${src_release}" = "y" ]; then
                 archive="${archive_filename}"
@@ -2313,16 +2362,20 @@ CT_DoExtractPatch()
             CT_DoExecLog ALL touch "${src_dir}/.${basename}.patching"
 
             bundled_patch_dir="${CT_LIB_DIR}/packages/${pkg_dir}"
+            bundled_exp_patch_dir="${CT_LIB_DIR}/packages/${pkg_dir}/experimental"
             bundled_common_patch_dir="${CT_LIB_DIR}/packages/${pkg_name}"
             local_patch_dir="${CT_LOCAL_PATCH_DIR}/${pkg_dir}"
             local_common_patch_dir="${CT_LOCAL_PATCH_DIR}/${pkg_name}"
 
             case "${patch_order}" in
-                bundled)        patch_dirs=("${bundled_patch_dir}" "${bundled_common_patch_dir}");;
-                local)          patch_dirs=("${local_patch_dir}" "${local_common_patch_dir}");;
-                bundled,local)  patch_dirs=("${bundled_patch_dir}" "${bundled_common_patch_dir}" "${local_patch_dir}" "${local_common_patch_dir}");;
-                local,bundled)  patch_dirs=("${local_patch_dir}" "${local_common_patch_dir}" "${bundled_patch_dir}" "${bundled_common_patch_dir}");;
-                none)           patch_dirs=;;
+                bundled)                    patch_dirs=("${bundled_patch_dir}" "${bundled_common_patch_dir}");;
+                local)                      patch_dirs=("${local_patch_dir}" "${local_common_patch_dir}");;
+                bundled,local)              patch_dirs=("${bundled_patch_dir}" "${bundled_common_patch_dir}" "${local_patch_dir}" "${local_common_patch_dir}");;
+                local,bundled)              patch_dirs=("${local_patch_dir}" "${local_common_patch_dir}" "${bundled_patch_dir}" "${bundled_common_patch_dir}");;
+                bundled,bundled_exp)        patch_dirs=("${bundled_patch_dir}" "${bundled_common_patch_dir}" "${bundled_exp_patch_dir}");;
+                bundled,bundled_exp,local)  patch_dirs=("${bundled_patch_dir}" "${bundled_common_patch_dir}" "${bundled_exp_patch_dir}" "${local_patch_dir}" "${local_common_patch_dir}");;
+                local,bundled,bundled_exp)  patch_dirs=("${local_patch_dir}" "${local_common_patch_dir}" "${bundled_patch_dir}" "${bundled_common_patch_dir}" "${bundled_exp_patch_dir}");;
+                none)                       patch_dirs=;;
             esac
 
             CT_Pushd "${src_dir}/${basename}"
@@ -2495,7 +2548,7 @@ if [ -r "${CT_LIB_DIR}/paths.sh" ]; then
 elif [ -r "${CT_TOP_DIR}/paths.sh" ]; then
     paths_sh_location="${CT_TOP_DIR}/paths.sh"
 else
-    CT_Error "Not found: paths.sh"
+    CT_Abort "Not found: paths.sh"
 fi
 . "${paths_sh_location}"
 
@@ -2529,8 +2582,7 @@ CT_InstallConfigurationFile()
     local path="${1}"
     local suffix="${2}"
 
-    CT_DoExecLog ALL mkdir -p "${CT_PREFIX_DIR}/bin"
-    CT_DoExecLog DEBUG ${install} -m 0755 "${CT_LIB_DIR}/scripts/toolchain-config.in" "${CT_PREFIX_DIR}/bin/${CT_TARGET}-${suffix}.config"
-    CT_DoExecLog DEBUG ${sed} -i -e 's,@@grep@@,"'"${grep}"'",;' "${CT_PREFIX_DIR}/bin/${CT_TARGET}-${suffix}.config"
-    bzip2 -c -9 "${path}" >>"${CT_PREFIX_DIR}/bin/${CT_TARGET}-${suffix}.config"
+    CT_DoExecLog ALL mkdir -p "${CT_PREFIX_DIR}/share"
+    CT_DoExecLog DEBUG ${install} -m 0644 "${path}" "${CT_PREFIX_DIR}/share/${CT_TARGET}-${suffix}.config"
+    CT_DoExecLog DEBUG bzip2 -9 "${CT_PREFIX_DIR}/share/${CT_TARGET}-${suffix}.config"
 }

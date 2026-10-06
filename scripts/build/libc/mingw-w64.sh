@@ -25,6 +25,14 @@ mingw_w64_headers() {
         sdk_opts+=( "--enable-secure-api"  )
     fi
 
+    if [ "${CT_MINGW_DEFAULT_MSVCRT_MSVCRT}" = "y" ]; then
+        sdk_opts+=( "--with-default-msvcrt=msvcrt" )
+    elif [ "${CT_MINGW_DEFAULT_MSVCRT_UCRT}" = "y" ]; then
+        sdk_opts+=( "--with-default-msvcrt=ucrt" )
+    elif [ -n "${CT_MINGW_DEFAULT_MSVCRT}" ]; then
+        sdk_opts+=( "--with-default-msvcrt=${CT_MINGW_DEFAULT_MSVCRT}" )
+    fi
+
     CT_mkdir_pushd "${CT_BUILD_DIR}/build-mingw-w64-headers"
 
     CT_DoLog EXTRA "Configuring Headers"
@@ -125,6 +133,10 @@ do_mingw_pthreads()
             rcflags="-F pe-x86-64"
             dlltoolflags="-m i386:x86_64"
             ;;
+        aarch64-*)
+            rcflags="-F pe-aarch64-little"
+            dlltoolflags="-m arm64"
+            ;;
         *)
             CT_Abort "Tuple ${multi_target} is not supported by mingw-w64"
             ;;
@@ -174,6 +186,7 @@ mingw_w64_main()
 {
     # Used when iterating over libwinpthread
     local default_libprefix
+    local -a crt_opts
 
     do_check_mingw_vendor_tuple
 
@@ -183,6 +196,14 @@ mingw_w64_main()
 
     CT_mkdir_pushd "${CT_BUILD_DIR}/build-mingw-w64-crt"
 
+    if [ "${CT_MINGW_DEFAULT_MSVCRT_MSVCRT}" = "y" ]; then
+        crt_opts+=( "--with-default-msvcrt=msvcrt" )
+    elif [ "${CT_MINGW_DEFAULT_MSVCRT_UCRT}" = "y" ]; then
+        crt_opts+=( "--with-default-msvcrt=ucrt" )
+    elif [ -n "${CT_MINGW_DEFAULT_MSVCRT}" ]; then
+        crt_opts+=( "--with-default-msvcrt=${CT_MINGW_DEFAULT_MSVCRT}"  )
+    fi
+
     mingw_w64_set_install_prefix
     CT_DoExecLog CFG \
     ${CONFIG_SHELL} \
@@ -190,7 +211,9 @@ mingw_w64_main()
         --with-sysroot=${CT_SYSROOT_DIR} \
         --prefix=${MINGW_INSTALL_PREFIX} \
         --build=${CT_BUILD} \
-        --host=${CT_TARGET}
+        --host=${CT_TARGET} \
+        --enable-wildcard \
+        "${crt_opts[@]}"
 
     # mingw-w64-crt has a missing dependency occasionally breaking the
     # parallel build. See https://github.com/crosstool-ng/crosstool-ng/issues/246

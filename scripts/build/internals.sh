@@ -22,6 +22,37 @@ create_ldso_conf()
     done
 }
 
+create_cmake_toolchain()
+{
+    local system
+
+    if [ "${CT_KERNEL_LINUX}" = "y" ]; then
+        system=Linux
+    elif [ "${CT_KERNEL_WINDOWS}" = "y" ]; then
+        system=Windows
+    else
+        # Assume bare metal
+        system=Generic
+    fi
+
+    echo "\
+set(CMAKE_SYSTEM_NAME @@SYSTEM@@)
+set(CMAKE_SYSTEM_PROCESSOR @@CT_TARGET_ARCH@@)
+
+set(CMAKE_C_COMPILER \${CMAKE_CURRENT_LIST_DIR}/bin/@@CT_TARGET@@-gcc)
+set(CMAKE_CXX_COMPILER \${CMAKE_CURRENT_LIST_DIR}/bin/@@CT_TARGET@@-g++)
+
+set(CMAKE_FIND_ROOT_PATH \${CMAKE_CURRENT_LIST_DIR}/@@CT_TARGET@@/sysroot)
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)" \
+    | sed -r -e 's|@@SYSTEM@@|'"${system}"'|g;'       \
+             -e 's|@@CT_TARGET@@|'"${CT_TARGET}"'|g;' \
+             -e 's|@@CT_TARGET_ARCH@@|'"${CT_TARGET_ARCH}"'|g;'     \
+             > "${CT_PREFIX_DIR}/toolchain.cmake"
+}
+
 # This step is called once all components were built, to remove
 # un-wanted files, to add tuple aliases, and to add the final
 # crosstool-NG-provided files.
@@ -31,6 +62,7 @@ do_finish() {
     local strip_args
     local gcc_version
     local exe_suffix
+    local tarball
 
     CT_DoStep INFO "Finalizing the toolchain's directory"
 
@@ -121,6 +153,11 @@ do_finish() {
         CT_DoExecLog ALL chmod 755 "${CT_PREFIX_DIR}/bin/${CT_TARGET}-ldd"
     fi
 
+    if [ "${CT_TOOLCHAIN_CMAKE_TOOLCHAIN_FILE}" = "y" ]; then
+        CT_DoLog EXTRA "Installing a cmake toolchain file"
+        create_cmake_toolchain
+    fi
+
     # Create the aliases to the target tools
     CT_DoLog EXTRA "Creating toolchain aliases"
     CT_SymlinkTools "${CT_PREFIX_DIR}/bin" "${CT_PREFIX_DIR}/bin" \
@@ -136,6 +173,20 @@ do_finish() {
 
     if [ "${CT_INSTALL_LICENSES}" = y ]; then
         CT_InstallCopyingInformation
+    fi
+
+    if [ "${CT_TARBALL_RESULT}" = y ]; then
+        tarball="${CT_TARBALL_RESULT_DIR}/${CT_TARBALL_RESULT_FILENAME}.tar.xz"
+        CT_DoLog EXTRA "Creating binary toolchain tarball: ${tarball}"
+        cp "${CT_TOP_DIR}/.config" "${CT_PREFIX_DIR}/${CT_TOOLCHAIN_PKGVERSION}.config"
+        (cd "${CT_PREFIX_DIR}" && \
+            find ./. -print0 | \
+                LC_ALL=C sort -z | \
+                tar --numeric-owner --owner=0 --group=0 \
+                    --transform "s,^\./\.,${CT_TARBALL_RESULT_FILENAME},S" \
+                    --no-recursion --null -T - -Jcf "${tarball}")
+        CT_DoLog EXTRA "Calculating binary toolchain checksum"
+        sha256sum "${tarball}" > "${tarball}.asc"
     fi
 
     CT_EndStep

@@ -5,6 +5,7 @@
 ## select CC_SUPPORT_JAVA if !GCC_7_or_later && OBSOLETE
 ## select CC_SUPPORT_ADA
 ## select CC_SUPPORT_D
+## select CC_SUPPORT_JIT
 ## select CC_SUPPORT_OBJC
 ## select CC_SUPPORT_OBJCXX
 ## select CC_SUPPORT_GOLANG
@@ -28,7 +29,6 @@
 config CC_GCC_ENABLE_PLUGINS
     def_bool y
     depends on BINUTILS_PLUGINS
-    depends on ! STATIC_TOOLCHAIN
 
 # If binutils installs gold, enable support for gold in gcc
 config CC_GCC_GOLD
@@ -80,6 +80,7 @@ config CC_GCC_EXTRA_CONFIG_ARRAY
 config CC_GCC_MULTILIB_LIST
     string "List of multilib variants"
     depends on MULTILIB
+    depends on ! (ARCH_RISCV && BARE_METAL)
     default "m2,m2e,m4,m4-single,m4-single-only,m2a,m2a-single" if GCC_11_or_later && ARCH_SH
     default "aprofile,rmprofile" if ARCH_ARM && ARCH_32
     help
@@ -87,6 +88,18 @@ config CC_GCC_MULTILIB_LIST
       the multilib variants to be built. Refer to GCC installation manual
       for the format of this option for a particular architecture.
       Leave empty to use the default list for this architecture.
+
+config CC_GCC_MULTILIB_GENERATOR
+    string "Generator of RISC-V multilib variants"
+    depends on MULTILIB
+    depends on (ARCH_RISCV && BARE_METAL)
+    default ""
+    help
+      Multilib generator for RISC-V architecture.
+
+      For more information please refer to gcc manual
+
+      If unsure, leave empty.
 
 config STATIC_TOOLCHAIN
     bool
@@ -171,7 +184,6 @@ config CC_GCC_USE_GRAPHITE
 config CC_GCC_USE_LTO
     bool "Enable LTO"
     default y
-    depends on ! STATIC_TOOLCHAIN
     select ZLIB_NEEDED
     help
       Enable the Link Time Optimisations.
@@ -179,9 +191,10 @@ config CC_GCC_USE_LTO
 config CC_GCC_LTO_ZSTD
     tristate
     prompt "Support LTO compression with zstd"
-    default m if !CANADIAN && !STATIC_TOOLCHAIN
+    default m
     depends on CC_GCC_USE_LTO
     depends on GCC_10_or_later
+    select ZSTD_NEEDED
     help
       Support zstd compression for LTO object files. This will require
       libzstd to be installed when using the toolchain
@@ -200,8 +213,9 @@ comment "Settings for libraries running on target"
 config CC_GCC_ENABLE_DEFAULT_PIE
     bool
     prompt "Enable Position Independent Executable as default"
-    default y
+    default n
     depends on GCC_6_or_later && ! WINDOWS && ! ARCH_MIPS && ! ARCH_AVR && ! ARCH_PRU
+    depends on !(ARCH_RISCV && BARE_METAL)
     help
       Pass --enable-default-pie to crossgcc's configure.
       
@@ -216,6 +230,48 @@ config CC_GCC_ENABLE_TARGET_OPTSPACE
       Pass --enable-target-optspace to crossgcc's configure.
       
       This will compile crossgcc's libs with -Os.
+
+config CC_GCC_LIBSTDCXX
+    tristate "Build libstdcxx"
+    default n if ARCH_AVR || LIBC_NONE
+    default m
+    depends on CC_LANG_CXX
+    select CC_CORE_NEEDED if ARCH_AVR
+    help
+      libstdcxx is normally disabled on some systems, like avr, due to size
+      limitations or it being not supported.
+      Set this option to force libstdcxx support.
+
+       Option  | libstdcxx build    | Associated ./configure switch
+      ---------+--------------------+--------------------------------
+         Y     | forcibly           | --enable-libstdcxx
+         M     | auto               | (none, ./configure decides)
+         N     | forcibly not       | --disable-libstdcxx
+
+config CC_GCC_LIBSTDCXX_HOSTED_DISABLE
+    bool "Build freestanding libstdcxx"
+    default y if LIBC_AVR_LIBC
+    default n
+    depends on CC_GCC_LIBSTDCXX
+    help
+      libstdcxx can be compiled in two modes: hosted and freestanding.
+      Hosted mode is the default, and is used when the OS is available.
+      Freestanding mode is used when the OS is not available, like in
+      bare-metal systems.
+
+      Some architectures, like avr, do not support hosted mode, but default
+      to it, and will fail to build libstdcxx in hosted mode.
+
+      Answer 'y' here to force freestanding mode, otherwise answer let
+      ./configure decide. 
+
+config CC_GCC_LIBSTDCXX_TARGET_CXXFLAGS
+    string
+    prompt "Target CXXFLAGS for libstdc++"
+    default ""
+    help
+      Used to add extra CXXFLAGS when compiling the target libstdc++
+      library (e.g. -fno-exceptions).
 
 config CC_GCC_LIBMUDFLAP
     bool

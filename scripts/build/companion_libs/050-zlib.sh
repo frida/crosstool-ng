@@ -80,6 +80,10 @@ do_zlib_backend() {
         eval "${arg// /\\ }"
     done
 
+    if [ "${CT_CC_LANG_JIT}" = "y" ]; then
+        cflags="${cflags} -fPIC"
+    fi
+
     case "${host}" in
     *-mingw32)
         # zlib treats mingw host differently and requires using a different
@@ -88,8 +92,6 @@ do_zlib_backend() {
         cp -av "${CT_SRC_DIR}/zlib/." .
         extra_make=( -f win32/Makefile.gcc \
             PREFIX="${host}-" \
-            SHAREDLIB= \
-            IMPLIB= \
             LIBRARY_PATH="${prefix}/lib" \
             INCLUDE_PATH="${prefix}/include" \
             BINARY_PATH="${prefix}/bin" \

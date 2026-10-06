@@ -43,8 +43,9 @@ cc_gcc_lang_list() {
     [ "${CT_CC_LANG_CXX}" = "y"      ] && lang_list+=",c++"
     [ "${CT_CC_LANG_FORTRAN}" = "y"  ] && lang_list+=",fortran"
     [ "${CT_CC_LANG_ADA}" = "y"      ] && lang_list+=",ada"
-    [ "${CT_CC_LANG_D}" = "y"      ] && lang_list+=",d"
+    [ "${CT_CC_LANG_D}" = "y"        ] && lang_list+=",d"
     [ "${CT_CC_LANG_JAVA}" = "y"     ] && lang_list+=",java"
+    [ "${CT_CC_LANG_JIT}" = "y"      ] && lang_list+=",jit"
     [ "${CT_CC_LANG_OBJC}" = "y"     ] && lang_list+=",objc"
     [ "${CT_CC_LANG_OBJCXX}" = "y"   ] && lang_list+=",obj-c++"
     [ "${CT_CC_LANG_GOLANG}" = "y"   ] && lang_list+=",go"
@@ -281,6 +282,7 @@ do_gcc_core_backend() {
         gcc_build|gcc_host)
             CT_DoLog EXTRA "Configuring final gcc compiler"
             extra_config+=( "${CT_CC_SYSROOT_ARG[@]}" )
+            extra_config+=( "--with-headers=${CT_PREFIX_DIR}/${CT_TARGET}/include" )
             extra_user_config=( "${CT_CC_GCC_EXTRA_CONFIG_ARRAY[@]}" )
             log_txt="final gcc compiler"
             # to inhibit the libiberty and libgcc tricks later on
@@ -288,14 +290,13 @@ do_gcc_core_backend() {
             ;;
         libstdcxx)
             CT_DoLog EXTRA "Configuring libstdc++ for ${libstdcxx_name}"
-            if [ "${header_dir}" = "" ]; then
+            if [ -z "${header_dir}" ]; then
                 header_dir="${CT_PREFIX_DIR}/${libstdcxx_name}/include"
             fi
-            if [ "${exec_prefix}" = "" ]; then
+            if [ -z "${exec_prefix}" ]; then
                 exec_prefix="${CT_PREFIX_DIR}/${libstdcxx_name}"
             fi
             extra_config+=( "${CT_CC_SYSROOT_ARG[@]}" )
-            extra_config+=( "--with-headers=${header_dir}" )
             extra_user_config=( "${CT_CC_GCC_EXTRA_CONFIG_ARRAY[@]}" )
             log_txt="libstdc++ ${libstdcxx_name} library"
             # to inhibit the libiberty and libgcc tricks later on
@@ -306,7 +307,7 @@ do_gcc_core_backend() {
             ;;
     esac
 
-    if [ "${exec_prefix}" = "" ]; then
+    if [ -z "${exec_prefix}" ]; then
         exec_prefix="${prefix}"
     fi
 
@@ -329,7 +330,7 @@ do_gcc_core_backend() {
             ;;
     esac
 
-    for tmp in ARCH ABI CPU CPU_32 CPU_64 TUNE FPU FLOAT ENDIAN; do
+    for tmp in ARCH ARCH_32 ARCH_64 ABI CPU CPU_32 CPU_64 TUNE TUNE_32 TUNE_64 FPU FLOAT ENDIAN; do
         eval tmp="\${CT_ARCH_WITH_${tmp}}"
         if [ -n "${tmp}" ]; then
             extra_config+=("${tmp}")
@@ -342,6 +343,10 @@ do_gcc_core_backend() {
     # Hint GCC we'll use a bit special version of Newlib
     if [ "${CT_LIBC_NEWLIB_NANO_FORMATTED_IO}" = "y" ]; then
         extra_config+=("--enable-newlib-nano-formatted-io")
+    fi
+
+    if [ "${CT_CC_LANG_JIT}" = "y" ]; then
+        extra_config+=("--enable-host-shared")
     fi
 
     if [ "${CT_CC_CXA_ATEXIT}" = "y" ]; then
@@ -384,8 +389,32 @@ do_gcc_core_backend() {
         "") extra_config+=("--disable-libstdcxx-verbose");;
     esac
 
+    if [ "${build_libstdcxx}" = "yes" ]; then
+        if [ "x${CT_CC_GCC_LIBSTDCXX}" = "x" ]; then
+            build_libstdcxx="no"
+        elif [ "${CT_CC_GCC_LIBSTDCXX}" = "y" ]; then
+            extra_config+=("--enable-libstdcxx")
+        fi
+
+        if [ "${CT_LIBC_AVR_LIBC}" = "y" ]; then
+            extra_config+=("--enable-cstdio=stdio_pure")
+        fi
+
+        if [ "${CT_CC_GCC_LIBSTDCXX_HOSTED_DISABLE}" = "y" ]; then
+            extra_config+=("--disable-libstdcxx-hosted")
+        fi
+    fi
+
     if [ "${build_libstdcxx}" = "no" ]; then
         extra_config+=(--disable-libstdcxx)
+    fi
+
+    if [ "${CT_LIBC_PICOLIBC}" = "y" ]; then
+        extra_config+=("--with-default-libc=picolibc")
+        extra_config+=("--enable-stdio=pure")
+        if [ "${CT_PICOLIBC_older_than_1_8}" = "y" ]; then
+            extra_config+=("--disable-wchar_t")
+        fi
     fi
 
     core_LDFLAGS+=("${ldflags}")
@@ -482,6 +511,12 @@ do_gcc_core_backend() {
         *)  extra_config+=( "--enable-decimal-float=${CT_CC_GCC_DEC_FLOATS}" );;
     esac
 
+    if [ "${CT_CC_GCC_ENABLE_PLUGINS}" = "y" ]; then
+        extra_config+=( --enable-plugin )
+    else
+        extra_config+=( --disable-plugin )
+    fi
+
     case "${CT_ARCH}" in
         mips)
             case "${CT_CC_GCC_mips_llsc}" in
@@ -516,6 +551,22 @@ do_gcc_core_backend() {
         "") extra_config+=("--disable-tls");;
     esac
 
+    # In baremetal, we only build the Ada compiler without its runtime.
+    # The runtime will need to be provided externaly by the user.
+    if [    "${mode}" = "baremetal"    \
+         -a "${CT_CC_LANG_ADA}"  = "y"    \
+       ]; then
+        extra_config+=("--disable-libada" )
+    fi
+
+    # In baremetal, we only build the D compiler without its runtime.
+    # The runtime will need to be provided externaly by the user.
+    if [    "${mode}" = "baremetal"    \
+         -a "${CT_CC_LANG_D}"  = "y"    \
+       ]; then
+        extra_config+=("--disable-libphobos" )
+    fi
+
     # Some versions of gcc have a defective --enable-multilib.
     # Since that's the default, only pass --disable-multilib. For multilib,
     # also enable multiarch. Without explicit --enable-multiarch, core
@@ -528,6 +579,9 @@ do_gcc_core_backend() {
         extra_config+=("--enable-multiarch")
         if [ -n "${CT_CC_GCC_MULTILIB_LIST}" ]; then
             extra_config+=("--with-multilib-list=${CT_CC_GCC_MULTILIB_LIST}")
+        fi
+        if [ -n "${CT_CC_GCC_MULTILIB_GENERATOR}" ]; then
+            extra_config+=("--with-multilib-generator=${CT_CC_GCC_MULTILIB_GENERATOR}")
         fi
     fi
 
@@ -552,6 +606,13 @@ do_gcc_core_backend() {
         if ${CT_BUILD}-gcc --version 2>&1 | grep clang; then
             cflags_for_build="$cflags_for_build -fbracket-depth=512"
         fi
+    fi
+
+    # Add an extra system include dir if we have one. This is especially useful
+    # when building libstdc++ with a libc other than the system libc (e.g.
+    # picolibc)
+    if [ -n "${header_dir}" ]; then
+        cflags_for_target="${cflags_for_target} -idirafter ${header_dir}"
     fi
 
     # For non-sysrooted toolchain, GCC doesn't search except at the installation
@@ -586,6 +647,7 @@ do_gcc_core_backend() {
     # miscompile or outright fail.
     CT_DoExecLog CFG                                   \
     CC_FOR_BUILD="${CT_BUILD}-gcc"                     \
+    CXX_FOR_BUILD="${CT_BUILD}-g++"                    \
     CFLAGS="${cflags}"                                 \
     CFLAGS_FOR_BUILD="${cflags_for_build}"             \
     CXXFLAGS="${cflags} ${cxxflags_for_build}"         \
@@ -603,6 +665,7 @@ do_gcc_core_backend() {
         --exec_prefix="${exec_prefix}"                 \
         --with-local-prefix="${CT_SYSROOT_DIR}"        \
         "${extra_config[@]}"                           \
+        --disable-libatomic                            \
         --enable-languages="${lang_list}"              \
         "${extra_user_config[@]}"
 
@@ -658,9 +721,7 @@ do_gcc_core_backend() {
     else # build_libgcc
         core_targets=( gcc )
     fi   # ! build libgcc
-    if [    "${build_libstdcxx}" = "yes"    \
-         -a "${CT_CC_LANG_CXX}"  = "y"      \
-       ]; then
+    if [ "${build_libstdcxx}" = "yes" ]; then
         core_targets+=( target-libstdc++-v3 )
     fi
 
@@ -687,6 +748,14 @@ do_gcc_core_backend() {
 
     CT_DoLog EXTRA "Building ${log_txt}"
     CT_DoExecLog ALL make ${CT_JOBSFLAGS} ${core_targets_all}
+
+    # In case of baremetal, the gnat* tools are not built automatically.
+    if [    "${mode}" = "baremetal"    \
+         -a "${CT_CC_LANG_ADA}"  = "y"    \
+       ]; then
+        CT_DoLog EXTRA "Building gnattools for baremetal"
+        CT_DoExecLog ALL make -C gcc ${CT_JOBSFLAGS} cross-gnattools
+    fi
 
     # Do not pass ${CT_JOBSFLAGS} here: recent GCC builds have been failing
     # in parallel 'make install' at random locations: libitm, libcilk,
@@ -763,9 +832,7 @@ do_cc_for_build() {
         # lack of such a compiler, but better safe than sorry...
         build_final_opts+=( "mode=baremetal" )
         build_final_opts+=( "build_libgcc=yes" )
-        if [ "${CT_LIBC_NONE}" != "y" ]; then
-            build_final_opts+=( "build_libstdcxx=yes" )
-        fi
+        build_final_opts+=( "build_libstdcxx=yes" )
         build_final_opts+=( "build_libgfortran=yes" )
         if [ "${CT_STATIC_TOOLCHAIN}" = "y" ]; then
             build_final_opts+=( "build_staticlinked=yes" )
@@ -848,15 +915,14 @@ do_cc_for_host() {
     final_opts+=( "ldflags=${CT_LDFLAGS_FOR_HOST}" )
     final_opts+=( "lang_list=$( cc_gcc_lang_list )" )
     final_opts+=( "build_step=gcc_host" )
+    final_opts+=( "extra_cxxflags_for_target=${CT_CC_GCC_LIBSTDCXX_TARGET_CXXFLAGS}" )
     if [ "${CT_BUILD_MANUALS}" = "y" ]; then
         final_opts+=( "build_manuals=yes" )
     fi
     if [ "${CT_BARE_METAL}" = "y" ]; then
         final_opts+=( "mode=baremetal" )
         final_opts+=( "build_libgcc=yes" )
-        if [ "${CT_LIBC_NONE}" != "y" ]; then
-            final_opts+=( "build_libstdcxx=yes" )
-        fi
+        final_opts+=( "build_libstdcxx=yes" )
         final_opts+=( "build_libgfortran=yes" )
         if [ "${CT_STATIC_TOOLCHAIN}" = "y" ]; then
             final_opts+=( "build_staticlinked=yes" )
@@ -911,7 +977,6 @@ do_gcc_backend() {
     local extra_cxxflags_for_target
     local ldflags
     local build_manuals
-    local exec_prefix
     local header_dir
     local libstdcxx_name
     local -a host_libstdcxx_flags
@@ -926,7 +991,7 @@ do_gcc_backend() {
         eval "${arg// /\\ }"
     done
 
-    if [ "${exec_prefix}" = "" ]; then
+    if [ -z "${exec_prefix}" ]; then
         exec_prefix="${prefix}"
     fi
 
@@ -948,7 +1013,7 @@ do_gcc_backend() {
     # Enable selected languages
     extra_config+=("--enable-languages=${lang_list}")
 
-    for tmp in ARCH ARCH_32 ARCH_64 ABI CPU CPU_32 CPU_64 TUNE TUNE_32 TUNE_64 FPU FLOAT; do
+    for tmp in ARCH ARCH_32 ARCH_64 ABI CPU CPU_32 CPU_64 TUNE TUNE_32 TUNE_64 FPU FLOAT ENDIAN; do
         eval tmp="\${CT_ARCH_WITH_${tmp}}"
         if [ -n "${tmp}" ]; then
             extra_config+=("${tmp}")
@@ -1029,8 +1094,24 @@ do_gcc_backend() {
         "") extra_config+=("--disable-libstdcxx-verbose");;
     esac
     
-    if [ "${build_libstdcxx}" = "no" ]; then
+    if [ "x${CT_CC_GCC_LIBSTDCXX}" = "x" ]; then
         extra_config+=(--disable-libstdcxx)
+    elif [ "${CT_CC_GCC_LIBSTDCXX}" = "y" ]; then
+        extra_config+=(--enable-libstdcxx)
+    fi
+
+    if [ "${CT_CC_GCC_LIBSTDCXX_HOSTED_DISABLE}" = "y" ]; then
+        extra_config+=("--disable-libstdcxx-hosted")
+    fi
+
+    if [ "${CT_LIBC_AVR_LIBC}" = "y" ]; then
+        extra_config+=("--enable-cstdio=stdio_pure")
+    fi
+
+    if [ "${CT_LIBC_PICOLIBC}" = "y" ]; then
+        extra_config+=("--with-default-libc=picolibc")
+        extra_config+=("--enable-stdio=pure")
+        extra_config+=("--disable-wchar_t")
     fi
 
     final_LDFLAGS+=("${ldflags}")
@@ -1077,7 +1158,7 @@ do_gcc_backend() {
         extra_config+=("--disable-lto")
     fi
     case "${CT_CC_GCC_LTO_ZSTD}" in
-        y) extra_config+=("--with-zstd");;
+        y) extra_config+=("--with-zstd=${complibs}");;
         m) ;;
         *) extra_config+=("--without-zstd");;
     esac
@@ -1095,6 +1176,10 @@ do_gcc_backend() {
         else
             extra_config+=("--enable-threads=posix")
         fi
+    fi
+
+    if [ "${CT_CC_GCC_ENABLE_DEFAULT_PIE}" = "y" ]; then
+        extra_config+=("--enable-default-pie")
     fi
 
     if [ "${CT_CC_GCC_ENABLE_TARGET_OPTSPACE}" = "y" ] || \
@@ -1178,6 +1263,9 @@ do_gcc_backend() {
         if [ -n "${CT_CC_GCC_MULTILIB_LIST}" ]; then
             extra_config+=("--with-multilib-list=${CT_CC_GCC_MULTILIB_LIST}")
         fi
+        if [ -n "${CT_CC_GCC_MULTILIB_GENERATOR}" ]; then
+            extra_config+=("--with-multilib-generator=${CT_CC_GCC_MULTILIB_GENERATOR}")
+        fi
     fi
 
     CT_DoLog DEBUG "Extra config passed: '${extra_config[*]}'"
@@ -1201,6 +1289,13 @@ do_gcc_backend() {
         fi
     fi
 
+    # Add an extra system include dir if we have one. This is especially useful
+    # when building libstdc++ with a libc other than the system libc (e.g.
+    # picolibc)
+    if [ -n "${header_dir}" ]; then
+        cflags_for_target="${cflags_for_target} -idirafter ${header_dir}"
+    fi
+
     # Assume '-O2' by default for building target libraries.
     cflags_for_target="-g -O2 ${cflags_for_target}"
 
@@ -1218,6 +1313,7 @@ do_gcc_backend() {
     # See do_gcc_core_backend for explanation.
     CT_DoExecLog CFG                                   \
     CC_FOR_BUILD="${CT_BUILD}-gcc"                     \
+    CXX_FOR_BUILD="${CT_BUILD}-g++"                    \
     CFLAGS="${cflags}"                                 \
     CFLAGS_FOR_BUILD="${cflags_for_build}"             \
     CXXFLAGS="${cflags} ${cxxflags_for_build}"         \

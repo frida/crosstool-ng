@@ -1,3 +1,4 @@
+---
 name: CI
 
 on:
@@ -9,38 +10,42 @@ jobs:
     runs-on: ${{ matrix.host }}
     strategy:
       matrix:
-        host: [ "ubuntu-latest", "macos-latest" ]
+        # host: ["ubuntu-22.04", "macos-14"]
+        host: ["ubuntu-22.04"]
     steps:
       - name: "clone"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
       - name: "prereq Linux"
         if: ${{ runner.os == 'Linux' }}
         run: |
-          sudo apt-get install -y gperf help2man libtool-bin meson ninja-build
+          sudo apt-get update && sudo apt-get install -y bison flex gperf help2man libtool-bin meson ninja-build texinfo
       - name: "prereq macOS"
         if: ${{ runner.os == 'macOS' }}
         run: |
           brew install autoconf automake bash binutils gawk gnu-sed \
-               gnu-tar help2man make ncurses
+               gnu-tar help2man libtool make meson ncurses ninja texinfo
       - name: "build ct-ng"
         run: |
           if [ "$RUNNER_OS" == "macOS" ]; then
-            export PATH="$PATH:/usr/local/opt/binutils/bin"
-            export CPPFLAGS="-I/usr/local/opt/ncurses/include -I/usr/local/opt/gettext/include"
-            export LDFLAGS="-L/usr/local/opt/ncurses/lib -L/usr/local/opt/gettext/lib"
+            PATH="$PATH:$(brew --prefix)/opt/binutils/bin"
+            export PATH
+            CPPFLAGS="-I$(brew --prefix)/opt/ncurses/include -I$(brew --prefix)/opt/gettext/include"
+            export CPPFLAGS
+            LDFLAGS="-L$(brew --prefix)/opt/ncurses/lib -L$(brew --prefix)/opt/gettext/lib"
+            export LDFLAGS
           fi
           ./bootstrap
-          ./configure --prefix=$PWD/.local/
+          ./configure --prefix="$PWD/.local/"
           make
           make install
           tar -cf ct-ng.tar .local/
       - name: "upload ct-ng"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: crosstool.${{ matrix.host }}
           path: ct-ng.tar
       - name: "upload config.log"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: config.log.${{ matrix.host }}
           path: config.log
@@ -51,24 +56,37 @@ jobs:
     runs-on: ${{ matrix.host }}
     strategy:
       matrix:
-        host: [ "ubuntu-latest" ]
+        host: ["ubuntu-22.04"]
     steps:
       - name: "download ct-ng"
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v8
         with:
           name: crosstool.${{ matrix.host }}
       - name: "extract ct-ng"
         run: |
           tar -xf ct-ng.tar
+      - name: cache tarballs
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: src.tar
+          key: src.tar-${{ hashFiles('.local/share/crosstool-ng/packages') }}-${{ hashFiles('.local/share/crosstool-ng/samples') }}
+          restore-keys: |
+            src.tar-${{ hashFiles('.local/share/crosstool-ng/packages') }}-
+            src.tar-
+      - name: extract tarballs
+        run: |
+          tar -xvf src.tar || true
+          touch stamp
       - name: "prereq Linux"
         if: ${{ runner.os == 'Linux' }}
         run: |
-          sudo apt-get install -y gperf help2man libtool-bin
-          echo "$GITHUB_WORKSPACE/.local/bin" >> $GITHUB_PATH
+          sudo apt-get update && sudo apt-get install -y bison flex gperf help2man libtool-bin texinfo
+          echo "$GITHUB_WORKSPACE/.local/bin" >> "$GITHUB_PATH"
       - name: "ct-ng source"
         run: |
           mkdir -p src
-          for sample in aarch64-unknown-linux-gnu arm-picolibc-eabi \
+          for sample in aarch64-unknown-linux-gnu arm-none-eabi \
                 arm-unknown-linux-musleabi armv6-nommu-linux-uclibcgnueabi \
                 x86_64-w64-mingw32; do \
                 ct-ng $sample; \
@@ -78,40 +96,44 @@ jobs:
                 sed -i -e 's/^.*CT_COMP_TOOLS_BISON.*$/CT_COMP_TOOLS_BISON=y/' .config; \
                 sed -i -e 's/^.*CT_COMP_TOOLS_M4.*$/CT_COMP_TOOLS_M4=y/' .config; \
                 sed -i -e 's/^.*CT_COMP_TOOLS_MAKE.*$/CT_COMP_TOOLS_MAKE=y/' .config; \
+                sed -i -e 's/^.*CT_DOWNLOAD_WGET_OPTIONS.*$/CT_DOWNLOAD_WGET_OPTIONS="--tries=3 -nc --progress=dot:binary --no-use-server-timestamps"/' .config; \
                 ct-ng olddefconfig; \
                 ct-ng source; \
           done
+          find src -type f -not -newer stamp -delete -print
           tar -cvf src.tar src
-      - name: "upload sources"
-        uses: actions/upload-artifact@v3
-        with:
-          name: src.tar
-          path: src.tar
 
   toolchains:
-    needs: [ crosstool, tarballs ]
+    needs: [crosstool, tarballs]
     uses: ./.github/workflows/build-toolchains.yml
     with:
       samples: >-
         [
           "aarch64-unknown-linux-gnu",
+          "aarch64-unknown-linux-musl",
           "arc-multilib-elf32",
           "arc-multilib-linux-gnu",
           "arc-multilib-linux-uclibc",
-          "arm-picolibc-eabi",
+          "arm-picolibc-default",
           "arm-unknown-linux-gnueabi",
           "arm-unknown-linux-musleabi",
           "armv6-nommu-linux-uclibcgnueabi",
           "avr",
+          "hppa-unknown-linux-gnu",
           "i686-w64-mingw32",
+          "loongarch32-unknown-linux-gnu",
+          "loongarch32-unknown-linux-gnusf",
           "loongarch64-unknown-linux-gnu",
+          "loongarch64-unknown-linux-musl",
           "mips-unknown-elf",
           "mips-unknown-linux-gnu",
           "mips64-unknown-linux-gnu",
           "powerpc-unknown-linux-gnu",
           "powerpc64-unknown-linux-gnu",
+          "powerpc64-unknown-linux-musl",
           "riscv32-unknown-elf",
           "riscv64-unknown-elf",
+          "riscv64-unknown-linux-gnu",
           "s390-unknown-linux-gnu",
           "sh-unknown-elf",
           "sparc-unknown-linux-gnu",
@@ -121,10 +143,10 @@ jobs:
           "xtensa-fsf-linux-uclibc"
         ]
 
-  canadian-cross:
-    needs: [ toolchains ]
-    uses: ./.github/workflows/build-toolchains.yml
-    with:
-      samples: >-
-        ["x86_64-w64-mingw32,x86_64-pc-linux-gnu"]
-      canadian-cross: true
+#  canadian-cross:
+#    needs: [toolchains]
+#    uses: ./.github/workflows/build-toolchains.yml
+#    with:
+#      samples: >-
+#        ["x86_64-w64-mingw32,x86_64-pc-linux-gnu"]
+#      canadian-cross: true

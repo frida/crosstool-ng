@@ -8,26 +8,12 @@ glibc_get()
     local version
 
     CT_Fetch GLIBC
-    if [ "${CT_GLIBC_USE_PORTS_EXTERNAL}" = "y" ]; then
-        CT_Fetch GLIBC_PORTS
-    fi
     return 0
 }
 
 glibc_extract()
 {
     CT_ExtractPatch GLIBC
-    if [ "${CT_GLIBC_USE_PORTS_EXTERNAL}" = "y" ]; then
-        CT_ExtractPatch GLIBC_PORTS
-
-        # This may create a bogus symlink if glibc-ports is using custom
-        # sources or has an overlay (and glibc is shared). However,
-        # we do not support concurrent use of the source directory
-        # and next run, if using different glibc-ports source, will override
-        # this symlink anyway.
-        CT_DoExecLog ALL ln -sf "${CT_SRC_DIR}/${CT_GLIBC_PORTS_DIR_NAME}" \
-                "${CT_SRC_DIR}/${CT_GLIBC_DIR_NAME}/ports"
-    fi
 }
 
 # This function builds and install the full C library
@@ -78,6 +64,10 @@ glibc_backend_once()
 
     if [ "${CT_GLIBC_ENABLE_OBSOLETE_RPC}" = "y" ]; then
         extra_config+=( --enable-obsolete-rpc )
+    fi
+
+    if [ "${CT_GLIBC_ENABLE_OBSOLETE_LIBCRYPT}" = "y" ]; then
+        extra_config+=( --enable-crypt )
     fi
 
     # Add some default glibc config options if not given by user.
@@ -192,6 +182,10 @@ glibc_backend_once()
     # or even after they get installed...
     echo "ac_cv_path_BASH_SHELL=/bin/bash" >>config.cache
 
+    if [ "${CT_GLIBC_MAKEINFO_WORKAROUND}" = "y" ]; then
+        echo "ac_cv_prog_MAKEINFO=" >>config.cache
+    fi
+
     CT_SymlinkToolsMultilib
 
     # Configure with --prefix the way we want it on the target...
@@ -259,8 +253,8 @@ glibc_backend_once()
             build_cppflags="${build_cppflags} -I${CT_BUILDTOOLS_PREFIX_DIR}/include/"
             build_ldflags="${build_ldflags} -lintl -liconv"
             case "$CT_BUILD" in
-                *cygwin*|*freebsd*)
-                # Additionally, stat in FreeBSD, Cygwin, and possibly others
+                *cygwin*|*freebsd*|aarch64*darwin*)
+                # Additionally, stat in FreeBSD, Cygwin, Darwin arm64 and possibly others
                 # is always 64bit, so replace struct stat64 with stat.
                 build_cppflags="${build_cppflags} -Dstat64=stat"
                 ;;
@@ -284,10 +278,6 @@ glibc_backend_once()
                           "${extra_make_args[@]}"         \
                           install_root="${multi_root}"    \
                           install
-
-    pushd "${CT_SYSROOT_DIR}/lib"
-    [ -e ld-linux-armhf.so.3 ] && ln -sf ld-linux-armhf.so.3 ld-linux.so.3
-    popd
 
     if [ "${CT_BUILD_MANUALS}" = "y" -a "${multi_index}" = "${multi_count}" ]; then
         # We only need to build the manuals once. Only build them on the
