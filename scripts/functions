@@ -1828,6 +1828,7 @@ CT_Mirrors()
         echo "https://ftp.gnu.org/gnu/${project}"
         echo "http://ftp.gnu.org/gnu/${project}"
         echo "ftp://ftp.gnu.org/gnu/${project}"
+        echo "https://mirrors.kernel.org/gnu/${project}"
         ;;
     sourceware)
         echo "https://sourceware.org/${project}/ftp"
